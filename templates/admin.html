@@ -6,7 +6,7 @@
 <div style="padding-top: 2rem;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1>Admin Dashboard</h1>
-        <button class="btn btn-primary" onclick="document.getElementById('addPresetModal').style.display='block'">
+        <button class="btn btn-primary" onclick="openAddModal()">
             <i class="fas fa-plus"></i> New Preset
         </button>
     </div>
@@ -22,12 +22,22 @@
             <p style="color: var(--text-muted); margin-bottom: 1rem;">
                 <i class="fas fa-layer-group"></i> Div {{ preset[4] }} &bull; Sem {{ preset[5] }}
             </p>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <a href="{{ url_for('manage_subjects', preset_id=preset[0]) }}" class="btn btn-primary"
-                    style="flex: 1; font-size: 0.9rem;">
+                    style="font-size: 0.9rem;">
                     <i class="fas fa-book"></i> Subjects
                 </a>
-                <!-- Future: Edit Preset Button via Modal -->
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" style="flex: 1; font-size: 0.8rem; background: var(--secondary);"
+                        onclick='openDuplicateModal({{ preset|tojson }})'>
+                        <i class="fas fa-copy"></i> Clone
+                    </button>
+                    <button class="btn btn-primary"
+                        style="flex: 1; font-size: 0.8rem; background: rgba(255,255,255,0.1);"
+                        onclick='openEditModal({{ preset|tojson }})'>
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
             </div>
         </div>
         {% else %}
@@ -40,42 +50,95 @@
     </div>
 </div>
 
-<!-- Add Preset Modal (Simple Implementation using absolute positioning and overlay) -->
-<div id="addPresetModal"
+<!-- Add/Edit Preset Modal -->
+<div id="presetModal"
     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
     <div class="glass"
         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 style="margin: 0; font-size: 1.5rem;">Add New Preset</h2>
-            <button onclick="document.getElementById('addPresetModal').style.display='none'"
+            <h2 id="modalTitle" style="margin: 0; font-size: 1.5rem;">Add New Preset</h2>
+            <button onclick="closeModal()"
                 style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
 
-        <form action="{{ url_for('add_preset') }}" method="post">
+        <form id="presetForm" method="post">
             <div class="form-group">
                 <label>Academic Year</label>
-                <input type="text" name="academic_year" placeholder="e.g. 2025-26" required>
+                <input type="text" id="academic_year" name="academic_year" placeholder="e.g. 2025-26" required>
             </div>
             <div class="form-group">
                 <label>Course</label>
-                <input type="text" name="course" placeholder="e.g. B.Tech CS" required>
+                <input type="text" id="course" name="course" placeholder="e.g. B.Tech CS" required>
             </div>
             <div style="display: flex; gap: 1rem;">
                 <div class="form-group" style="flex: 1;">
                     <label>Year</label>
-                    <input type="text" name="year" placeholder="e.g. 2nd" required>
+                    <input type="text" id="year" name="year" placeholder="e.g. 2nd" required>
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>Division</label>
-                    <input type="text" name="division" placeholder="e.g. A" required>
+                    <input type="text" id="division" name="division" placeholder="e.g. A" required>
                 </div>
                 <div class="form-group" style="flex: 1;">
                     <label>Semester</label>
-                    <input type="text" name="semester" placeholder="e.g. 3" required>
+                    <input type="text" id="semester" name="semester" placeholder="e.g. 3" required>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Create Preset</button>
+            <button type="submit" id="modalSubmitBtn" class="btn btn-primary"
+                style="width: 100%; margin-top: 1rem;">Create Preset</button>
         </form>
     </div>
 </div>
+
+<script>
+    function openAddModal() {
+        document.getElementById('modalTitle').innerText = 'Add New Preset';
+        document.getElementById('presetForm').action = "{{ url_for('add_preset') }}";
+        document.getElementById('modalSubmitBtn').innerText = 'Create Preset';
+
+        document.getElementById('academic_year').value = '';
+        document.getElementById('course').value = '';
+        document.getElementById('year').value = '';
+        document.getElementById('division').value = '';
+        document.getElementById('semester').value = '';
+
+        document.getElementById('presetModal').style.display = 'block';
+    }
+
+    function openEditModal(preset) {
+        document.getElementById('modalTitle').innerText = 'Edit Preset';
+        // Dynamically build the URL for editing
+        var url = "{{ url_for('edit_preset', preset_id=0) }}".replace('0', preset[0]);
+        document.getElementById('presetForm').action = url;
+        document.getElementById('modalSubmitBtn').innerText = 'Update Preset';
+
+        document.getElementById('academic_year').value = preset[1];
+        document.getElementById('course').value = preset[2];
+        document.getElementById('year').value = preset[3];
+        document.getElementById('division').value = preset[4];
+        document.getElementById('semester').value = preset[5];
+
+        document.getElementById('presetModal').style.display = 'block';
+    }
+
+    function openDuplicateModal(preset) {
+        document.getElementById('modalTitle').innerText = 'Duplicate Preset (Deep Copy)';
+        // Dynamically build the URL for duplicating
+        var url = "{{ url_for('duplicate_preset', preset_id=0) }}".replace('0', preset[0]);
+        document.getElementById('presetForm').action = url;
+        document.getElementById('modalSubmitBtn').innerText = 'Clone & Copy Subjects';
+
+        document.getElementById('academic_year').value = preset[1];
+        document.getElementById('course').value = preset[2];
+        document.getElementById('year').value = preset[3];
+        document.getElementById('division').value = ''; // Clear division to force user to check
+        document.getElementById('semester').value = preset[5];
+
+        document.getElementById('presetModal').style.display = 'block';
+    }
+
+    function closeModal() {
+        document.getElementById('presetModal').style.display = 'none';
+    }
+</script>
 {% endblock %}

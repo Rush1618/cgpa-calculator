@@ -11,24 +11,49 @@
         <form action="{{ url_for('student_dashboard') }}" method="post">
             <div class="form-group">
                 <label for="academic_year">Academic Year</label>
-                <input type="text" id="academic_year" name="academic_year" placeholder="e.g. 2025-26" required>
+                <select id="academic_year" name="academic_year" required>
+                    <option value="" disabled selected>Select Academic Year</option>
+                    {% for item in academic_years %}
+                    <option value="{{ item }}">{{ item }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form-group">
                 <label for="course">Course</label>
-                <input type="text" id="course" name="course" placeholder="e.g. B.Tech" required>
+                <select id="course" name="course" required>
+                    <option value="" disabled selected>Select Course</option>
+                    {% for item in courses %}
+                    <option value="{{ item }}">{{ item }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
                 <div class="form-group">
                     <label for="year">Year</label>
-                    <input type="text" id="year" name="year" placeholder="e.g. 2nd" required>
+                    <select id="year" name="year" required>
+                        <option value="" disabled selected>Select Year</option>
+                        {% for item in years %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="division">Division</label>
-                    <input type="text" id="division" name="division" placeholder="e.g. A" required>
+                    <select id="division" name="division" required>
+                        <option value="" disabled selected>Select Division</option>
+                        {% for item in divisions %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="semester">Semester</label>
-                    <input type="text" id="semester" name="semester" placeholder="e.g. 3" required>
+                    <select id="semester" name="semester" required>
+                        <option value="" disabled selected>Select Semester</option>
+                        {% for item in semesters %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
             <button type="submit" name="action" value="load_subjects" class="btn btn-primary"
@@ -41,7 +66,7 @@
     {% if preset_not_found %}
     <div class="flash-card error" style="margin-top: 1.5rem; position: static;">
         <i class="fas fa-exclamation-circle"></i>
-        <span>Preset not found. Please check your details or contact admin.</span>
+        <span>Preset not found. Please check your selection or contact admin.</span>
     </div>
     {% endif %}
 

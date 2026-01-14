@@ -58,46 +58,7 @@ def inject_now():
 
 @app.route('/login')
 def login():
-    if os.getenv('FLASK_ENV') == 'development':
-        return render_template('login.html', dev_mode=True)
     return google.authorize_redirect(url_for('authorize', _external=True))
-
-@app.route('/dev_login/<role>')
-def dev_login(role):
-    if os.getenv('FLASK_ENV') != 'development':
-        return redirect(url_for('index'))
-    
-    if role == 'admin':
-        user_info = {
-            'email': ADMIN_EMAIL,
-            'name': 'Admin User',
-            'picture': 'https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff'
-        }
-    else:
-        user_info = {
-            'email': 'student@example.com',
-            'name': 'Student User',
-            'picture': 'https://ui-avatars.com/api/?name=Student+User&background=ec4899&color=fff'
-        }
-    
-    session['user'] = user_info
-    
-    # Ensure user exists in DB logic (duplicated from authorize for dev convenience)
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE email = ?", (user_info['email'],))
-    user = cursor.fetchone()
-    
-    if not user:
-        is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
-        cursor.execute(
-            "INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)",
-            (user_info['email'], user_info['name'], is_admin)
-        )
-        conn.commit()
-    conn.close()
-
-    return redirect('/')    
 
 @app.route('/authorize')
 def authorize():
@@ -166,6 +127,83 @@ def additional_info():
     return render_template('additional_info.html')
 
 
+@app.route('/admin/presets/edit/<int:preset_id>', methods=['POST'])
+def edit_preset(preset_id):
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+
+    academic_year = request.form['academic_year']
+    course = request.form['course']
+    year = request.form['year']
+    division = request.form['division']
+    semester = request.form['semester']
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE presets SET academic_year=?, course=?, year=?, division=?, semester=? WHERE id=?",
+        (academic_year, course, year, division, semester, preset_id)
+    )
+    conn.commit()
+    conn.close()
+
+    flash('Preset updated successfully!', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/presets/duplicate/<int:preset_id>', methods=['POST'])
+def duplicate_preset(preset_id):
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+
+    # 1. Create the NEW Preset
+    academic_year = request.form['academic_year']
+    course = request.form['course']
+    year = request.form['year']
+    division = request.form['division']
+    semester = request.form['semester']
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "INSERT INTO presets (academic_year, course, year, division, semester) VALUES (?, ?, ?, ?, ?)",
+        (academic_year, course, year, division, semester)
+    )
+    new_preset_id = cursor.lastrowid
+
+    # 2. Fetch Original Subjects
+    cursor.execute("SELECT * FROM subjects WHERE preset_id=?", (preset_id,))
+    original_subjects = cursor.fetchall()
+
+    # 3. Copy Subjects & Components
+    for subj in original_subjects:
+        # subj: (id, preset_id, name, code, credits)
+        cursor.execute(
+            "INSERT INTO subjects (preset_id, name, code, credits) VALUES (?, ?, ?, ?)",
+            (new_preset_id, subj[2], subj[3], subj[4])
+        )
+        new_subject_id = cursor.lastrowid
+        
+        # Fetch Components for this subject
+        cursor.execute("SELECT * FROM components WHERE subject_id=?", (subj[0],))
+        components = cursor.fetchall()
+        
+        # Copy Components
+        for comp in components:
+            # comp: (id, subject_id, name, max_marks)
+            cursor.execute(
+                "INSERT INTO components (subject_id, name, max_marks) VALUES (?, ?, ?)",
+                (new_subject_id, comp[2], comp[3])
+            )
+
+    conn.commit()
+    conn.close()
+
+    flash(f'Preset cloned successfully! Created {len(original_subjects)} subjects.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
+
 @app.route('/admin')
 def admin_dashboard():
     if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
@@ -206,6 +244,9 @@ def student_dashboard():
     if 'user' not in session:
         return redirect(url_for('index'))
 
+    conn = create_connection()
+    cursor = conn.cursor()
+
     if request.method == 'POST':
         action = request.form.get('action')
 
@@ -215,9 +256,6 @@ def student_dashboard():
         division = request.form['division']
         semester = request.form['semester']
 
-        conn = create_connection()
-        cursor = conn.cursor()
-
         cursor.execute(
             "SELECT id FROM presets WHERE academic_year=? AND course=? AND year=? AND division=? AND semester=?",
             (academic_year, course, year, division, semester)
@@ -226,8 +264,26 @@ def student_dashboard():
 
         if action == 'load_subjects':
             if not preset:
+                # Fetch options again to re-render dropdowns
+                cursor.execute("SELECT DISTINCT academic_year FROM presets")
+                academic_years = [row[0] for row in cursor.fetchall()]
+
+                cursor.execute("SELECT DISTINCT course FROM presets")
+                courses = [row[0] for row in cursor.fetchall()]
+
+                cursor.execute("SELECT DISTINCT year FROM presets")
+                years = [row[0] for row in cursor.fetchall()]
+
+                cursor.execute("SELECT DISTINCT division FROM presets")
+                divisions = [row[0] for row in cursor.fetchall()]
+
+                cursor.execute("SELECT DISTINCT semester FROM presets")
+                semesters = [row[0] for row in cursor.fetchall()]
                 conn.close()
-                return render_template('student.html', preset_not_found=True)
+
+                return render_template('student.html', preset_not_found=True,
+                                       academic_years=academic_years, courses=courses,
+                                       years=years, divisions=divisions, semesters=semesters)
 
             preset_id = preset[0]
             cursor.execute("SELECT * FROM subjects WHERE preset_id=?", (preset_id,))
@@ -308,7 +364,32 @@ def student_dashboard():
 
             return redirect(url_for('view_result'))
 
-    return render_template('student.html')
+    # GET request: Fetch options for dropdowns
+    cursor.execute("SELECT DISTINCT academic_year FROM presets")
+    academic_years = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT DISTINCT course FROM presets")
+    courses = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT DISTINCT year FROM presets")
+    years = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT DISTINCT division FROM presets")
+    divisions = [row[0] for row in cursor.fetchall()]
+
+    cursor.execute("SELECT DISTINCT semester FROM presets")
+    semesters = [row[0] for row in cursor.fetchall()]
+
+    conn.close()
+
+    return render_template(
+        'student.html',
+        academic_years=academic_years,
+        courses=courses,
+        years=years,
+        divisions=divisions,
+        semesters=semesters
+    )
 
 
 @app.route('/result')
