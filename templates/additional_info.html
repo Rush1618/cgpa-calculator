@@ -1,24 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Additional Information</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Additional Information</h1>
-        <form method="post">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name" required>
-            <br>
-            <label for="roll_number">Roll Number:</label>
-            <input type="text" id="roll_number" name="roll_number" required>
-            <br>
-            <button type="submit">Save & Continue</button>
+{% extends 'base.html' %}
+
+{% block title %}Complete Profile{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="glass login-card">
+        <h1>Almost There!</h1>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Please provide your details to continue.</p>
+
+        <form action="{{ url_for('additional_info') }}" method="post">
+            <div class="form-group" style="text-align: left;">
+                <label>Full Name</label>
+                <input type="text" name="name" value="{{ session.get('user', {}).get('name', '') }}" required>
+            </div>
+            <div class="form-group" style="text-align: left;">
+                <label>Roll Number / PRN</label>
+                <input type="text" name="roll_number" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save &
+                Continue</button>
         </form>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

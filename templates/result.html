@@ -1,49 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Your Result</h1>
-        <a href="{{ url_for('student_dashboard') }}">Back to Dashboard</a>
+{% extends 'base.html' %}
 
-        <h3>Subject-wise Results</h3>
+{% block title %}My Results{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem; max-width: 900px; margin: 0 auto;">
+
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h1>Exam Results</h1>
+        {% if cgpa %}
+        <div class="glass"
+            style="display: inline-block; padding: 1rem 3rem; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+            <span style="display: block; font-size: 1rem; color: var(--text-muted); margin-bottom: 0.5rem;">CUMULATIVE
+                GPA</span>
+            <span style="font-size: 3rem; font-weight: 700; color: var(--success);">{{ "%.2f"|format(cgpa[0]) }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if subject_results %}
+    <div class="glass table-container">
         <table>
             <thead>
                 <tr>
                     <th>Subject</th>
-                    <th>Total Obtained</th>
-                    <th>Total Max</th>
+                    <th>Obtained</th>
+                    <th>Max</th>
                     <th>Percentage</th>
                     <th>Grade</th>
-                    <th>Grade Point</th>
+                    <th>Points</th>
                 </tr>
             </thead>
             <tbody>
                 {% for result in subject_results %}
                 <tr>
-                    <td>{{ result[0] }}</td>
+                    <td style="font-weight: 500; color: white;">{{ result[0] }}</td>
                     <td>{{ result[1] }}</td>
                     <td>{{ result[2] }}</td>
-                    <td>{{ "%.2f"|format(result[3]) }}%</td>
-                    <td>{{ result[4] }}</td>
+                    <td>{{ "%.1f"|format(result[3]) }}%</td>
+                    <td>
+                        <span style="
+                            padding: 0.2rem 0.6rem; 
+                            border-radius: 4px; 
+                            font-size: 0.85rem; 
+                            font-weight: 600;
+                            background: {% if result[4] == 'F' %}rgba(239, 68, 68, 0.2); color: var(--danger);{% else %}rgba(16, 185, 129, 0.2); color: var(--success);{% endif %}
+                        ">
+                            {{ result[4] }}
+                        </span>
+                    </td>
                     <td>{{ result[5] }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-
-        <hr>
-
-        <h3>Final CGPA</h3>
-        <h2>{{ "%.2f"|format(cgpa[0]) }}</h2>
-
-        <a href="{{ url_for('download_pdf') }}">Download as PDF</a>
     </div>
-</body>
-</html>
+
+    <div style="margin-top: 2rem; text-align: right;">
+        <a href="{{ url_for('download_pdf') }}" class="btn btn-primary" style="background: var(--secondary);">
+            <i class="fas fa-file-pdf"></i> Download PDF
+        </a>
+    </div>
+    {% else %}
+    <div class="glass card" style="text-align: center; padding: 4rem;">
+        <i class="fas fa-clipboard-list" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+        <h3>No Results Yet</h3>
+        <p style="color: var(--text-muted);">Complete your subject marks entry to see results here.</p>
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary" style="margin-top: 1rem;">Go to
+            Dashboard</a>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

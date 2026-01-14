@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CGPA System | {% block title %}Welcome{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    <div class="background-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="glass-nav">
+        <div class="logo">
+            <i class="fas fa-graduation-cap"></i> CGPA<span>Pro</span>
+        </div>
+        <div class="nav-links">
+            {% if session.get('user') %}
+            {% if session.get('user').email == 'singh02.rushabh@gmail.com' %}
+            <a href="{{ url_for('admin_dashboard') }}"
+                class="nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </a>
+            <a href="{{ url_for('view_students') }}"
+                class="nav-item {% if request.endpoint == 'view_students' %}active{% endif %}">
+                <i class="fas fa-users"></i> Students
+            </a>
+            <a href="{{ url_for('manage_grading_rules') }}"
+                class="nav-item {% if request.endpoint == 'manage_grading_rules' %}active{% endif %}">
+                <i class="fas fa-ruler"></i> Grading
+            </a>
+            {% else %}
+            <a href="{{ url_for('student_dashboard') }}"
+                class="nav-item {% if request.endpoint == 'student_dashboard' %}active{% endif %}">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="{{ url_for('view_result') }}"
+                class="nav-item {% if request.endpoint == 'view_result' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i> Results
+            </a>
+            {% endif %}
+            <div class="user-profile">
+                <img src="{{ session.get('user').picture }}" alt="Profile"
+                    onerror="this.src='https://ui-avatars.com/api/?name={{ session.get('user').name }}';">
+                <span>{{ session.get('user').name }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn-logout"><i class="fas fa-sign-out-alt"></i></a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="btn-login">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash-card {{ category }}">
+                <i
+                    class="fas {% if category=='success' %}fa-check-circle{% elif category=='error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2026 CGPA Pro System. Built with <i class="fas fa-heart"></i> for Students.</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

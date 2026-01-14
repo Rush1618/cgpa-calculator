@@ -1,66 +1,81 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1>Admin Dashboard</h1>
-        <a href="{{ url_for('logout') }}">Logout</a>
-
-        <h2>Student Management</h2>
-        <a href="{{ url_for('view_students') }}">View All Students</a>
-
-        <h2>Preset Management</h2>
-        <form action="{{ url_for('add_preset') }}" method="post">
-            <input type="text" name="academic_year" placeholder="Academic Year" required>
-            <input type="text" name="course" placeholder="Course" required>
-            <input type="text" name="year" placeholder="Year" required>
-            <input type="text" name="division" placeholder="Division" required>
-            <input type="text" name="semester" placeholder="Semester" required>
-            <button type="submit">Add Preset</button>
-        </form>
-
-        <hr>
-
-        <h3>Existing Presets</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Academic Year</th>
-                    <th>Course</th>
-                    <th>Year</th>
-                    <th>Division</th>
-                    <th>Semester</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for preset in presets %}
-                <tr>
-                    <td>{{ preset[1] }}</td>
-                    <td>{{ preset[2] }}</td>
-                    <td>{{ preset[3] }}</td>
-                    <td>{{ preset[4] }}</td>
-                    <td>{{ preset[5] }}</td>
-                    <td>
-                        <a href="{{ url_for('edit_preset', preset_id=preset[0]) }}">Edit</a>
-                        <a href="{{ url_for('delete_preset', preset_id=preset[0]) }}" onclick="return confirm('Are you sure you want to delete this preset?')">Delete</a>
-                        <a href="{{ url_for('manage_subjects', preset_id=preset[0]) }}">Manage Subjects</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <hr>
-
-        <h2>Grading Rule Management</h2>
-        <a href="{{ url_for('manage_grading_rules') }}">Manage Grading Rules</a>
+        <button class="btn btn-primary" onclick="document.getElementById('addPresetModal').style.display='block'">
+            <i class="fas fa-plus"></i> New Preset
+        </button>
     </div>
-</body>
-</html>
+
+    <div class="grid">
+        {% for preset in presets %}
+        <div class="glass card">
+            <div
+                style="position: absolute; top:0; right:0; padding: 0.5rem 1rem; background: var(--primary); border-radius: 0 0 0 10px; font-size: 0.8rem;">
+                {{ preset[1] }}
+            </div>
+            <h3>{{ preset[2] }} {{ preset[3] }} Year</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                <i class="fas fa-layer-group"></i> Div {{ preset[4] }} &bull; Sem {{ preset[5] }}
+            </p>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ url_for('manage_subjects', preset_id=preset[0]) }}" class="btn btn-primary"
+                    style="flex: 1; font-size: 0.9rem;">
+                    <i class="fas fa-book"></i> Subjects
+                </a>
+                <!-- Future: Edit Preset Button via Modal -->
+            </div>
+        </div>
+        {% else %}
+        <div class="glass card" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
+            <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <h3>No Presets Found</h3>
+            <p style="color: var(--text-muted);">Create a class preset to get started.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Add Preset Modal (Simple Implementation using absolute positioning and overlay) -->
+<div id="addPresetModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
+    <div class="glass"
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; font-size: 1.5rem;">Add New Preset</h2>
+            <button onclick="document.getElementById('addPresetModal').style.display='none'"
+                style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <form action="{{ url_for('add_preset') }}" method="post">
+            <div class="form-group">
+                <label>Academic Year</label>
+                <input type="text" name="academic_year" placeholder="e.g. 2025-26" required>
+            </div>
+            <div class="form-group">
+                <label>Course</label>
+                <input type="text" name="course" placeholder="e.g. B.Tech CS" required>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label>Year</label>
+                    <input type="text" name="year" placeholder="e.g. 2nd" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Division</label>
+                    <input type="text" name="division" placeholder="e.g. A" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label>Semester</label>
+                    <input type="text" name="semester" placeholder="e.g. 3" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Create Preset</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

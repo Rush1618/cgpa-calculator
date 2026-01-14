@@ -1,41 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Grading Rules</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    <div class="container">
-        <h1>Manage Grading Rules</h1>
-        <a href="{{ url_for('admin_dashboard') }}">Back to Admin Dashboard</a>
+{% extends 'base.html' %}
 
-        <form method="post">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Min Percentage</th>
-                        <th>Max Percentage</th>
-                        <th>Grade</th>
-                        <th>Grade Point</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rule in rules %}
-                    <tr>
-                        <input type="hidden" name="rule_id" value="{{ rule[0] }}">
-                        <td><input type="number" name="min_percentage" value="{{ rule[1] }}" required></td>
-                        <td><input type="number" name="max_percentage" value="{{ rule[2] }}" required></td>
-                        <td><input type="text" name="grade" value="{{ rule[3] }}" required></td>
-                        <td><input type="number" name="grade_point" value="{{ rule[4] }}" required></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <button type="submit">Update Rules</button>
+{% block title %}Grading Rules{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem; max-width: 800px; margin: 0 auto;">
+    <h1>Grading System</h1>
+    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Define percentage ranges and
+        corresponding grades.</p>
+
+    <div class="glass card">
+        <form action="{{ url_for('manage_grading_rules') }}" method="post">
+            <div class="table-container" style="background: transparent; border: none;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Min %</th>
+                            <th>Max %</th>
+                            <th>Grade</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rule in rules %}
+                        <tr>
+                            <input type="hidden" name="rule_id" value="{{ rule[0] }}">
+                            <td><input type="number" name="min_percentage" value="{{ rule[1] }}" style="width: 80px;">
+                            </td>
+                            <td><input type="number" name="max_percentage" value="{{ rule[2] }}" style="width: 80px;">
+                            </td>
+                            <td><input type="text" name="grade" value="{{ rule[3] }}"
+                                    style="width: 60px; text-transform: uppercase;"></td>
+                            <td><input type="number" name="grade_point" value="{{ rule[4] }}" style="width: 60px;"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Rules
+                </button>
+            </div>
         </form>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

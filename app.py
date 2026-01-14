@@ -1,6 +1,7 @@
 from flask import Flask, redirect, url_for, render_template, session, request, flash
 from authlib.integrations.flask_client import OAuth
 import os
+from datetime import datetime
 from database import create_connection
 try:
     from dotenv import load_dotenv
@@ -51,10 +52,52 @@ def index():
     return render_template('login.html')
 
 
+@app.context_processor
+def inject_now():
+    return {'now': datetime.utcnow()}
+
 @app.route('/login')
 def login():
+    if os.getenv('FLASK_ENV') == 'development':
+        return render_template('login.html', dev_mode=True)
     return google.authorize_redirect(url_for('authorize', _external=True))
 
+@app.route('/dev_login/<role>')
+def dev_login(role):
+    if os.getenv('FLASK_ENV') != 'development':
+        return redirect(url_for('index'))
+    
+    if role == 'admin':
+        user_info = {
+            'email': ADMIN_EMAIL,
+            'name': 'Admin User',
+            'picture': 'https://ui-avatars.com/api/?name=Admin+User&background=6366f1&color=fff'
+        }
+    else:
+        user_info = {
+            'email': 'student@example.com',
+            'name': 'Student User',
+            'picture': 'https://ui-avatars.com/api/?name=Student+User&background=ec4899&color=fff'
+        }
+    
+    session['user'] = user_info
+    
+    # Ensure user exists in DB logic (duplicated from authorize for dev convenience)
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (user_info['email'],))
+    user = cursor.fetchone()
+    
+    if not user:
+        is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
+        cursor.execute(
+            "INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)",
+            (user_info['email'], user_info['name'], is_admin)
+        )
+        conn.commit()
+    conn.close()
+
+    return redirect('/')    
 
 @app.route('/authorize')
 def authorize():
@@ -71,10 +114,21 @@ def authorize():
         if not user:
             is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
             cursor.execute(
-                "INSERT INTO users (email, is_admin) VALUES (?, ?)",
-                (user_info['email'], is_admin)
+                "INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)",
+                (user_info['email'], user_info.get('name', 'Unknown'), is_admin)
             )
             conn.commit()
+        else:
+            # User exists, update their admin status if necessary
+            # Assuming is_admin is the 5th column (index 4)
+            current_is_admin = user[4] 
+            expected_is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
+            if current_is_admin != expected_is_admin:
+                cursor.execute(
+                    "UPDATE users SET is_admin = ? WHERE email = ?",
+                    (expected_is_admin, user_info['email'])
+                )
+                conn.commit()
 
         conn.close()
         return redirect('/')
