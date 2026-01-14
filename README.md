@@ -4,7 +4,7 @@ This is a single-folder monolithic web application for a college CGPA system.
 
 ## Features
 
-- Firebase Google OAuth for authentication
+- Google OAuth for authentication
 - Admin and Student roles
 - Preset system for subjects and components
 - CGPA calculation
@@ -21,7 +21,6 @@ cgpa_system/
 ├── database.db
 ├── database.py
 ├── requirements.txt
-├── .env                  # Contains Firebase configuration and service account key path
 ├── templates/
 │   ├── login.html
 │   ├── student.html
@@ -53,49 +52,23 @@ cgpa_system/
     ```bash
     pip install -r requirements.txt
     ```
-3. **Set up Firebase Project:**
-    - Go to the [Firebase Console](https://console.firebase.google.com/).
-    - Create a new project (e.g., `cgpa-calc-bc705`).
-
-4. **Enable Google Sign-In:**
-    - In your Firebase project, navigate to **Authentication** > **Sign-in method**.
-    - Enable the **Google** sign-in provider.
-
-5. **Get Web App Firebase Configuration:**
-    - In your Firebase project, go to **Project settings** (the gear icon).
-    - Under the "Your apps" section, click on the **Web** icon (`</>`) to add a new web app.
-    - Follow the steps to register your app.
-    - Copy the `firebaseConfig` object provided.
-    - **Update `cgpa_system/.env`** with these values:
-      ```
-      VITE_FIREBASE_API_KEY="YOUR_API_KEY"
-      VITE_FIREBASE_AUTH_DOMAIN="YOUR_AUTH_DOMAIN"
-      VITE_FIREBASE_PROJECT_ID="YOUR_PROJECT_ID"
-      VITE_FIREBASE_STORAGE_BUCKET="YOUR_STORAGE_BUCKET"
-      VITE_FIREBASE_MESSAGING_SENDER_ID="YOUR_MESSAGING_SENDER_ID"
-      VITE_FIREBASE_APP_ID="YOUR_APP_ID"
-      VITE_FIREBASE_MEASUREMENT_ID="YOUR_MEASUREMENT_ID"
-      ```
-      (Replace `YOUR_...` with the actual values from your Firebase config).
-
-6. **Create Firebase Service Account Key (for Flask Backend):**
-    - In your Firebase project, go to **Project settings** > **Service accounts**.
-    - Click on **Generate new private key** and confirm.
-    - A JSON file will be downloaded. Rename it to `serviceAccountKey.json` (or any other name) and place it in the `cgpa_system` directory.
-    - **Update `cgpa_system/.env`** with the path to this file:
-      ```
-      FIREBASE_SERVICE_ACCOUNT_KEY_PATH="serviceAccountKey.json" # Or the path if you placed it elsewhere
-      ```
-
-7. **Run the database script:**
+3. **Set up Google OAuth:**
+    - Go to the [Google API Console](https://console.developers.google.com/).
+    - Create a new project.
+    - Go to **Credentials** and create an **OAuth client ID**.
+    - Select **Web application** as the application type.
+    - Add `http://127.0.0.1:5000/authorize` to the **Authorized redirect URIs**.
+    - Copy the **Client ID** and **Client Secret**.
+    - Open `app.py` and replace `YOUR_GOOGLE_CLIENT_ID` and `YOUR_GOOGLE_CLIENT_SECRET` with your actual credentials.
+4. **Run the database script:**
     ```bash
     python database.py
     ```
-8. **Run the application:**
+5. **Run the application:**
     ```bash
     python app.py
     ```
-9. **Open your browser and go to `http://127.0.0.1:5000`**
+6. **Open your browser and go to `http://127.0.0.1:5000`**
 
 ## Admin
 

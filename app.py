@@ -1,47 +1,27 @@
-from flask import Flask, redirect, url_for, render_template, session, request, flash, jsonify
+from flask import Flask, redirect, url_for, render_template, session, request, flash
+from authlib.integrations.flask_client import OAuth
 import os
-import firebase_admin
-from firebase_admin import credentials, auth
-from dotenv import load_dotenv, find_dotenv
-from database import create_connection # Import from database.py
-
-# Load environment variables from .env file in the cgpa_system directory
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+from database import create_connection
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Firebase Admin SDK Initialization
-# IMPORTANT: Replace 'path/to/your/serviceAccountKey.json' with the actual path to your Firebase service account key.
-# You can download this file from your Firebase project settings -> Service accounts.
-# Make sure this file is placed securely and its path is correct.
-SERVICE_ACCOUNT_KEY_PATH = os.getenv("FIREBASE_SERVICE_ACCOUNT_KEY_PATH", 'path/to/your/serviceAccountKey.json')
-
-try:
-    if os.path.exists(SERVICE_ACCOUNT_KEY_PATH):
-        cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
-        firebase_admin.initialize_app(cred)
-        print("Firebase Admin SDK initialized successfully.")
-    else:
-        print(f"WARNING: Firebase service account key not found at {SERVICE_ACCOUNT_KEY_PATH}.")
-        print("Firebase authentication will not work correctly on the backend.")
-        print("Please download your service account key and update FIREBASE_SERVICE_ACCOUNT_KEY_PATH in .env or app.py.")
-except Exception as e:
-    print(f"Error initializing Firebase Admin SDK: {e}")
+# OAuth setup
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id='150889353498-boq93u7mh358i91dvdm5i8ao9bihj7gk.apps.googleusercontent.com',  # Replace with your Client ID
+    client_secret='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',  # Replace with your Client Secret
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
+    client_kwargs={'scope': 'openid email profile'},
+)
 
 ADMIN_EMAIL = "singh02.rushabh@gmail.com"
-
-# Utility function to get firebase config for frontend
-def get_firebase_config():
-    return {
-        "apiKey": os.getenv("VITE_FIREBASE_API_KEY"),
-        "authDomain": os.getenv("VITE_FIREBASE_AUTH_DOMAIN"),
-        "projectId": os.getenv("VITE_FIREBASE_PROJECT_ID"),
-        "storageBucket": os.getenv("VITE_FIREBASE_STORAGE_BUCKET"),
-        "messagingSenderId": os.getenv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
-        "appId": os.getenv("VITE_FIREBASE_APP_ID"),
-        "measurementId": os.getenv("VITE_FIREBASE_MEASUREMENT_ID")
-    }
 
 @app.route('/')
 def index():
@@ -61,52 +41,29 @@ def index():
         else:
             return redirect(url_for('additional_info'))
 
-    # If no user in session, render login.html and pass firebase_config
-    return render_template('login.html', firebase_config=get_firebase_config())
+    return render_template('login.html')
 
 @app.route('/login')
 def login():
-    # Pass Firebase client-side configuration to the template
-    return render_template('login.html', firebase_config=get_firebase_config())
+    return google.authorize_redirect(url_for('authorize', _external=True))
 
-@app.route('/verify-token', methods=['POST'])
-def verify_token():
-    id_token = request.json.get('idToken')
-    if not id_token:
-        return jsonify({'message': 'ID Token not provided'}), 400
+@app.route('/authorize')
+def authorize():
+    token = google.authorize_access_token()
+    user_info = google.get('userinfo').json()
+    session['user'] = user_info
 
-    try:
-        # Verify the ID token using the Firebase Admin SDK.
-        decoded_token = auth.verify_id_token(id_token)
-        uid = decoded_token['uid']
-        email = decoded_token['email']
-        name = decoded_token.get('name', '')
-
-        session['user'] = {
-            'uid': uid,
-            'email': email,
-            'name': name
-        }
-
-        conn = create_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-        user = cursor.fetchone()
-        if not user:
-            is_admin = 1 if email == ADMIN_EMAIL else 0
-            cursor.execute("INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)", (email, name, is_admin))
-            conn.commit()
-        elif not user[2]: # If name is not yet set in our DB, update it
-            cursor.execute("UPDATE users SET name = ? WHERE email = ?", (name, email))
-            conn.commit()
-        conn.close()
-        
-        return jsonify({'message': 'Authentication successful'}), 200
-
-    except auth.InvalidIdTokenError:
-        return jsonify({'message': 'Invalid ID Token'}), 401
-    except Exception as e:
-        return jsonify({'message': str(e)}), 500
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE email = ?", (user_info['email'],))
+    user = cursor.fetchone()
+    if not user:
+        is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
+        cursor.execute("INSERT INTO users (email, is_admin) VALUES (?, ?)", (user_info['email'], is_admin))
+        conn.commit()
+    conn.close()
+    
+    return redirect('/')
 
 @app.route('/logout')
 def logout():
