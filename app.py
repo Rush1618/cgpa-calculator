@@ -2,9 +2,11 @@ from flask import Flask, redirect, url_for, render_template, session, request, f
 from authlib.integrations.flask_client import OAuth
 import os
 from database import create_connection
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
