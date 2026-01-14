@@ -56,7 +56,7 @@ def login():
 def authorize():
     try:
         token = google.authorize_access_token()
-        user_info = google.get('userinfo').json()
+        user_info = google.get(google.server_metadata.get('userinfo_endpoint')).json()
         session['user'] = user_info
 
         conn = create_connection()
