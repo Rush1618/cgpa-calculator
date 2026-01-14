@@ -11,6 +11,10 @@ except:
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
 
+# Ensure database tables are created
+from database import create_tables
+create_tables()
+
 oauth = OAuth(app)
 
 google = oauth.register(
