@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Your Result</h1>
+        <a href="{{ url_for('student_dashboard') }}">Back to Dashboard</a>
+
+        <h3>Subject-wise Results</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Total Obtained</th>
+                    <th>Total Max</th>
+                    <th>Percentage</th>
+                    <th>Grade</th>
+                    <th>Grade Point</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in subject_results %}
+                <tr>
+                    <td>{{ result[0] }}</td>
+                    <td>{{ result[1] }}</td>
+                    <td>{{ result[2] }}</td>
+                    <td>{{ "%.2f"|format(result[3]) }}%</td>
+                    <td>{{ result[4] }}</td>
+                    <td>{{ result[5] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h3>Final CGPA</h3>
+        <h2>{{ "%.2f"|format(cgpa[0]) }}</h2>
+
+        <a href="{{ url_for('download_pdf') }}">Download as PDF</a>
+    </div>
+</body>
+</html>

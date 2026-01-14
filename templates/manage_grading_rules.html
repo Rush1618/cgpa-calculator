@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Grading Rules</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Grading Rules</h1>
+        <a href="{{ url_for('admin_dashboard') }}">Back to Admin Dashboard</a>
+
+        <form method="post">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Min Percentage</th>
+                        <th>Max Percentage</th>
+                        <th>Grade</th>
+                        <th>Grade Point</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in rules %}
+                    <tr>
+                        <input type="hidden" name="rule_id" value="{{ rule[0] }}">
+                        <td><input type="number" name="min_percentage" value="{{ rule[1] }}" required></td>
+                        <td><input type="number" name="max_percentage" value="{{ rule[2] }}" required></td>
+                        <td><input type="text" name="grade" value="{{ rule[3] }}" required></td>
+                        <td><input type="number" name="grade_point" value="{{ rule[4] }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit">Update Rules</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Subjects</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Subjects for Preset</h1>
+        <a href="{{ url_for('admin_dashboard') }}">Back to Admin Dashboard</a>
+
+        <h2>Add Subject</h2>
+        <form action="{{ url_for('add_subject', preset_id=preset[0]) }}" method="post">
+            <input type="text" name="name" placeholder="Subject Name" required>
+            <input type="text" name="code" placeholder="Subject Code">
+            <input type="number" name="credits" placeholder="Credits" required>
+            
+            <h3>Components</h3>
+            <label><input type="checkbox" name="components" value="IAT-1"> IAT-1</label>
+            <input type="number" name="max_marks_IAT-1" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="IAT-2"> IAT-2</label>
+            <input type="number" name="max_marks_IAT-2" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="End Sem"> End Sem</label>
+            <input type="number" name="max_marks_End Sem" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="Oral"> Oral</label>
+            <input type="number" name="max_marks_Oral" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="Practical"> Practical</label>
+            <input type="number" name="max_marks_Practical" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="Term Work"> Term Work</label>
+            <input type="number" name="max_marks_Term Work" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="Tutorial"> Tutorial</label>
+            <input type="number" name="max_marks_Tutorial" placeholder="Max Marks">
+            <br>
+            <label><input type="checkbox" name="components" value="Project"> Project</label>
+            <input type="number" name="max_marks_Project" placeholder="Max Marks">
+            <br>
+
+            <button type="submit">Add Subject</button>
+        </form>
+
+        <hr>
+
+        <h3>Existing Subjects</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Credits</th>
+                    <th>Components</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in subjects %}
+                <tr>
+                    <td>{{ subject[2] }}</td>
+                    <td>{{ subject[3] }}</td>
+                    <td>{{ subject[4] }}</td>
+                    <td>
+                        <ul>
+                            {% for component in subject_components[subject[0]] %}
+                            <li>{{ component[2] }} ({{ component[3] }})</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('edit_subject', subject_id=subject[0]) }}">Edit</a>
+                        <a href="{{ url_for('delete_subject', subject_id=subject[0]) }}" onclick="return confirm('Are you sure you want to delete this subject?')">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

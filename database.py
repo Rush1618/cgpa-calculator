@@ -1,0 +1,124 @@
+import sqlite3
+
+def create_connection():
+    conn = sqlite3.connect('database.db')
+    return conn
+
+def create_tables():
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Create users table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT,
+            roll_number TEXT,
+            is_admin BOOLEAN DEFAULT 0
+        )
+    """)
+
+    # Create presets table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS presets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            academic_year TEXT NOT NULL,
+            course TEXT NOT NULL,
+            year TEXT NOT NULL,
+            division TEXT NOT NULL,
+            semester TEXT NOT NULL
+        )
+    """)
+
+    # Create subjects table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS subjects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            preset_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            code TEXT,
+            credits INTEGER NOT NULL,
+            FOREIGN KEY (preset_id) REFERENCES presets (id)
+        )
+    """)
+
+    # Create components table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS components (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            max_marks INTEGER NOT NULL,
+            FOREIGN KEY (subject_id) REFERENCES subjects (id)
+        )
+    """)
+
+    # Create student_marks table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS student_marks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            component_id INTEGER NOT NULL,
+            marks_obtained INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (component_id) REFERENCES components (id)
+        )
+    """)
+
+    # Create subject_results table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS subject_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            subject_id INTEGER NOT NULL,
+            total_obtained INTEGER NOT NULL,
+            total_max INTEGER NOT NULL,
+            percentage REAL NOT NULL,
+            grade TEXT NOT NULL,
+            grade_point INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (subject_id) REFERENCES subjects (id)
+        )
+    """)
+
+    # Create cgpa table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS cgpa (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            cgpa REAL NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    """)
+
+    # Create grading_rules table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS grading_rules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            min_percentage INTEGER NOT NULL,
+            max_percentage INTEGER NOT NULL,
+            grade TEXT NOT NULL,
+            grade_point INTEGER NOT NULL
+        )
+    """)
+
+    # Insert default grading rules
+    cursor.execute("SELECT COUNT(*) FROM grading_rules")
+    if cursor.fetchone()[0] == 0:
+        default_rules = [
+            (90, 100, 'O', 10),
+            (80, 89, 'A+', 9),
+            (70, 79, 'A', 8),
+            (60, 69, 'B+', 7),
+            (50, 59, 'B', 6),
+            (40, 49, 'C', 5),
+            (0, 39, 'F', 0)
+        ]
+        cursor.executemany("INSERT INTO grading_rules (min_percentage, max_percentage, grade, grade_point) VALUES (?, ?, ?, ?)", default_rules)
+
+    conn.commit()
+    conn.close()
+
+if __name__ == '__main__':
+    create_tables()

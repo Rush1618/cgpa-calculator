@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Subject</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Edit Subject</h1>
+        <form method="post">
+            <label for="name">Subject Name:</label>
+            <input type="text" id="name" name="name" value="{{ subject[2] }}" required>
+            <br>
+            <label for="code">Subject Code:</label>
+            <input type="text" id="code" name="code" value="{{ subject[3] }}">
+            <br>
+            <label for="credits">Credits:</label>
+            <input type="number" id="credits" name="credits" value="{{ subject[4] }}" required>
+            <br>
+            
+            <h3>Components</h3>
+            {% set existing_components = components|map(attribute=2)|list %}
+            <label><input type="checkbox" name="components" value="IAT-1" {% if 'IAT-1' in existing_components %}checked{% endif %}> IAT-1</label>
+            <input type="number" name="max_marks_IAT-1" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'IAT-1' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="IAT-2" {% if 'IAT-2' in existing_components %}checked{% endif %}> IAT-2</label>
+            <input type="number" name="max_marks_IAT-2" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'IAT-2' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="End Sem" {% if 'End Sem' in existing_components %}checked{% endif %}> End Sem</label>
+            <input type="number" name="max_marks_End Sem" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'End Sem' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="Oral" {% if 'Oral' in existing_components %}checked{% endif %}> Oral</label>
+            <input type="number" name="max_marks_Oral" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'Oral' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="Practical" {% if 'Practical' in existing_components %}checked{% endif %}> Practical</label>
+            <input type="number" name="max_marks_Practical" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'Practical' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="Term Work" {% if 'Term Work' in existing_components %}checked{% endif %}> Term Work</label>
+            <input type="number" name="max_marks_Term Work" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'Term Work' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="Tutorial" {% if 'Tutorial' in existing_components %}checked{% endif %}> Tutorial</label>
+            <input type="number" name="max_marks_Tutorial" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'Tutorial' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+            <label><input type="checkbox" name="components" value="Project" {% if 'Project' in existing_components %}checked{% endif %}> Project</label>
+            <input type="number" name="max_marks_Project" placeholder="Max Marks" value="{% for c in components %}{% if c[2] == 'Project' %}{{ c[3] }}{% endif %}{% endfor %}">
+            <br>
+
+            <button type="submit">Update Subject</button>
+        </form>
+    </div>
+</body>
+</html>

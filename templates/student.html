@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Student Dashboard</h1>
+        <a href="{{ url_for('logout') }}">Logout</a>
+
+        <form action="{{ url_for('student_dashboard') }}" method="post">
+            <label for="academic_year">Academic Year:</label>
+            <input type="text" id="academic_year" name="academic_year" required>
+            <br>
+            <label for="course">Course:</label>
+            <input type="text" id="course" name="course" required>
+            <br>
+            <label for="year">Year:</label>
+            <input type="text" id="year" name="year" required>
+            <br>
+            <label for="division">Division:</label>
+            <input type="text" id="division" name="division" required>
+            <br>
+            <label for="semester">Semester:</label>
+            <input type="text" id="semester" name="semester" required>
+            <br>
+            <button type="submit" name="action" value="load_subjects">Load Subjects</button>
+        </form>
+
+        {% if subjects %}
+        <hr>
+        <h2>Enter Marks</h2>
+        <form action="{{ url_for('student_dashboard') }}" method="post">
+            <input type="hidden" name="academic_year" value="{{ academic_year }}">
+            <input type="hidden" name="course" value="{{ course }}">
+            <input type="hidden" name="year" value="{{ year }}">
+            <input type="hidden" name="division" value="{{ division }}">
+            <input type="hidden" name="semester" value="{{ semester }}">
+
+            {% for subject in subjects %}
+            <h3>{{ subject[2] }}</h3>
+            <input type="hidden" name="subjects" value="{{ subject[0] }}">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Max Marks</th>
+                        <th>Marks Obtained</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for component in subject_components[subject[0]] %}
+                    <tr>
+                        <td>{{ component[2] }}</td>
+                        <td>{{ component[3] }}</td>
+                        <td>
+                            <input type="number" name="marks_{{ component[0] }}" min="0" max="{{ component[3] }}" required>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endfor %}
+            <button type="submit" name="action" value="calculate_cgpa">Calculate CGPA</button>
+        </form>
+        {% elif preset_not_found %}
+        <hr>
+        <p>Preset not found. Contact admin.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
