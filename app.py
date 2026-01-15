@@ -787,19 +787,64 @@ def view_student_marks(user_id):
     cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
     student = cursor.fetchone()
 
-    # Get Subject Results (Overview)
+    # Fetch subject results joined with subject and preset info
     cursor.execute("""
-        SELECT s.name, s.code, s.credits, sr.total_obtained, sr.total_max, sr.percentage, sr.grade, sr.grade_point, s.id
+        SELECT 
+            p.id as preset_id,
+            p.course,
+            p.year,
+            p.semester,
+            s.name as subject_name, 
+            s.code,
+            s.credits,
+            sr.total_obtained, 
+            sr.total_max, 
+            sr.percentage, 
+            sr.grade, 
+            sr.grade_point,
+            s.id as subject_id
         FROM subject_results sr
         JOIN subjects s ON sr.subject_id = s.id
+        JOIN presets p ON s.preset_id = p.id
         WHERE sr.user_id = ?
+        ORDER BY p.year DESC, p.semester DESC
     """, (user_id,))
-    subject_results = cursor.fetchall()
-
-    # Get Detailed Component Marks
+    
+    raw_results = cursor.fetchall()
+    
+    grouped_results = {}
     detailed_marks = {}
-    for res in subject_results:
-        subject_id = res[8] # the s.id selected at the end
+
+    for row in raw_results:
+        preset_id = row[0]
+        subject_id = row[12]
+        
+        if preset_id not in grouped_results:
+            grouped_results[preset_id] = {
+                'course': row[1],
+                'year': row[2],
+                'semester': row[3],
+                'subjects': [],
+                'total_credits': 0,
+                'total_points': 0
+            }
+        
+        grouped_results[preset_id]['subjects'].append({
+            'name': row[4],
+            'code': row[5],
+            'credits': row[6],
+            'obtained': row[7],
+            'max': row[8],
+            'percentage': row[9],
+            'grade': row[10],
+            'point': row[11],
+            'id': subject_id
+        })
+        
+        grouped_results[preset_id]['total_credits'] += row[6]
+        grouped_results[preset_id]['total_points'] += (row[11] * row[6])
+
+        # Fetch component marks for this subject
         cursor.execute("""
             SELECT c.name, sm.marks_obtained, c.max_marks
             FROM student_marks sm
@@ -807,6 +852,13 @@ def view_student_marks(user_id):
             WHERE sm.user_id = ? AND c.subject_id = ?
         """, (user_id, subject_id))
         detailed_marks[subject_id] = cursor.fetchall()
+
+    # Calculate SGPA for each group
+    for pid, data in grouped_results.items():
+        if data['total_credits'] > 0:
+            data['sgpa'] = round(data['total_points'] / data['total_credits'], 2)
+        else:
+            data['sgpa'] = 0.0
 
     # Get Final CGPA
     cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
@@ -818,7 +870,7 @@ def view_student_marks(user_id):
     return render_template(
         'admin_student_results.html',
         student=student,
-        subject_results=subject_results,
+        grouped_results=grouped_results,
         detailed_marks=detailed_marks,
         cgpa=cgpa
     )

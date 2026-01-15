@@ -29,55 +29,79 @@
         <p style="text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);">SGPA / CGPA</p>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-        {% for subject in subject_results %}
-        <div class="glass card">
-            <div
-                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;">
-                <div>
-                    <h3 style="margin: 0; color: var(--text-light);">{{ subject[0] }}</h3>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">{{ subject[1] }} &bull; Credits: {{
-                        subject[2] }}</span>
-                </div>
-                <div style="text-align: right;">
-                    <div class="{% if subject[6] == 'F' %}text-danger{% else %}text-success{% endif %}"
-                        style="font-size: 1.5rem; font-weight: bold;">
-                        {{ subject[6] }}
-                    </div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">Grade Point: {{ subject[7] }}</div>
-                </div>
-            </div>
-
-            <!-- Detailed Components Table -->
-            <table class="glass-table" style="margin-bottom: 0;">
-                <thead>
-                    <tr>
-                        <th>Component</th>
-                        <th>Obtained</th>
-                        <th>Max Marks</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for comp in detailed_marks[subject[8]] %}
-                    <tr>
-                        <td>{{ comp[0] }}</td>
-                        <td>{{ comp[1] }}</td>
-                        <td>{{ comp[2] }}</td>
-                    </tr>
-                    {% endfor %}
-                    <tr style="font-weight: bold; background: rgba(255,255,255,0.05);">
-                        <td>Total</td>
-                        <td>{{ subject[3] }}</td>
-                        <td>{{ subject[4] }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        {% else %}
+    <div style="display: flex; flex-direction: column; gap: 2rem;">
+        {% if not grouped_results %}
         <div class="glass card" style="text-align: center; padding: 3rem;">
             <p>No results calculated for this student yet.</p>
         </div>
+        {% else %}
+
+        {% for preset_id, data in grouped_results.items() %}
+        <div class="glass card" style="border: 1px solid var(--glass-border);">
+            <div
+                style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h2 style="margin: 0; color: var(--primary);">{{ data.course }}</h2>
+                    <p style="margin: 0; color: var(--text-muted);">{{ data.year }} Year &bull; Semester {{
+                        data.semester }}</p>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.9rem; color: var(--text-dim); display: block;">SGPA</span>
+                    <span style="font-size: 2rem; font-weight: 700; color: var(--success); line-height: 1;">{{ data.sgpa
+                        }}</span>
+                </div>
+            </div>
+
+            <div style="display: grid; gap: 1rem;">
+                {% for subject in data.subjects %}
+                <div
+                    style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; border: 1px solid rgba(255,255,255,0.05);">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <div>
+                            <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-light);">{{ subject.name }}</h3>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">{{ subject.code }} &bull;
+                                Credits: {{ subject.credits }}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <span class="{% if subject.grade == 'F' %}text-danger{% else %}text-success{% endif %}"
+                                style="font-size: 1.2rem; font-weight: bold; display: block;">
+                                {{ subject.grade }}
+                            </span>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">GP: {{ subject.point }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Components Table -->
+                    <table class="glass-table" style="margin-bottom: 0; font-size: 0.9rem;">
+                        <thead>
+                            <tr style="background: rgba(0,0,0,0.02);">
+                                <th style="padding: 0.5rem;">Component</th>
+                                <th style="padding: 0.5rem;">Obtained</th>
+                                <th style="padding: 0.5rem;">Max</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comp in detailed_marks[subject.id] %}
+                            <tr>
+                                <td style="padding: 0.5rem;">{{ comp[0] }}</td>
+                                <td style="padding: 0.5rem;">{{ comp[1] }}</td>
+                                <td style="padding: 0.5rem;">{{ comp[2] }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr style="font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <td style="padding: 0.5rem;">Total</td>
+                                <td style="padding: 0.5rem;">{{ subject.obtained }}</td>
+                                <td style="padding: 0.5rem;">{{ subject.max }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
         {% endfor %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}
