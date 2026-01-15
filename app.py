@@ -350,54 +350,79 @@ def student_dashboard():
             user_id = cursor.fetchone()[0]
 
             subject_ids = request.form.getlist('subjects')
+            
+            if not subject_ids:
+                 flash("No subjects selected/found.", "error")
+                 return redirect(url_for('student_dashboard'))
 
             total_credits = 0
             total_weighted_points = 0
+            
+            try:
+                for subject_id in subject_ids:
+                    cursor.execute("SELECT credits FROM subjects WHERE id=?", (subject_id,))
+                    res_credits = cursor.fetchone()
+                    if not res_credits: continue # Skip if bad subject ID
+                    credits = res_credits[0]
 
-            for subject_id in subject_ids:
-                cursor.execute("SELECT credits FROM subjects WHERE id=?", (subject_id,))
-                credits = cursor.fetchone()[0]
+                    cursor.execute("SELECT id, max_marks FROM components WHERE subject_id=?", (subject_id,))
+                    components = cursor.fetchall()
 
-                cursor.execute("SELECT id, max_marks FROM components WHERE subject_id=?", (subject_id,))
-                components = cursor.fetchall()
+                    total_obtained = 0
+                    total_max = 0
 
-                total_obtained = 0
-                total_max = 0
+                    for comp_id, max_marks in components:
+                        marks_str = request.form.get(f'marks_{comp_id}', '0')
+                        if not marks_str.isdigit(): marks_str = '0'
+                        marks = int(marks_str)
+                        
+                        total_obtained += marks
+                        total_max += max_marks
 
-                for comp_id, max_marks in components:
-                    marks = int(request.form[f'marks_{comp_id}'])
-                    total_obtained += marks
-                    total_max += max_marks
+                        cursor.execute(
+                            "INSERT OR REPLACE INTO student_marks (user_id, component_id, marks_obtained) VALUES (?, ?, ?)",
+                            (user_id, comp_id, marks)
+                        )
+                    
+                    if total_max > 0:
+                        percentage = (total_obtained / total_max) * 100
+                    else:
+                        percentage = 0
 
                     cursor.execute(
-                        "INSERT OR REPLACE INTO student_marks (user_id, component_id, marks_obtained) VALUES (?, ?, ?)",
-                        (user_id, comp_id, marks)
+                        "SELECT grade, grade_point FROM grading_rules WHERE ? BETWEEN min_percentage AND max_percentage",
+                        (percentage,)
+                    )
+                    grade_res = cursor.fetchone()
+                    
+                    if grade_res:
+                        grade, grade_point = grade_res
+                    else:
+                        # Fallback if no rule matches
+                        grade, grade_point = 'F', 0.0
+
+                    total_credits += credits
+                    total_weighted_points += grade_point * credits
+
+                    cursor.execute(
+                        "INSERT OR REPLACE INTO subject_results (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point)
                     )
 
-                percentage = (total_obtained / total_max) * 100
+                cgpa = total_weighted_points / total_credits if total_credits else 0
 
                 cursor.execute(
-                    "SELECT grade, grade_point FROM grading_rules WHERE ? BETWEEN min_percentage AND max_percentage",
-                    (percentage,)
-                )
-                grade, grade_point = cursor.fetchone()
-
-                total_credits += credits
-                total_weighted_points += grade_point * credits
-
-                cursor.execute(
-                    "INSERT OR REPLACE INTO subject_results (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point)
+                    "INSERT OR REPLACE INTO cgpa (user_id, cgpa) VALUES (?, ?)",
+                    (user_id, cgpa)
                 )
 
-            cgpa = total_weighted_points / total_credits if total_credits else 0
-
-            cursor.execute(
-                "INSERT OR REPLACE INTO cgpa (user_id, cgpa) VALUES (?, ?)",
-                (user_id, cgpa)
-            )
-
-            conn.commit()
+                conn.commit()
+            except Exception as e:
+                print(f"Error calculating CGPA: {e}")
+                conn.rollback()
+                flash("An error occurred during calculation. Please check your inputs.", "error")
+                return redirect(url_for('student_dashboard'))
+                
             conn.close()
 
             return redirect(url_for('view_result'))
@@ -759,7 +784,260 @@ def download_student_csv(user_id):
     return response
 
 
-@app.route('/download_pdf')
+@app.route('/admin/master_sheet')
+def master_sheet():
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Fetch all presets for the filter dropdown
+    cursor.execute("SELECT * FROM presets")
+    presets = cursor.fetchall()
+
+    selected_preset_id = request.args.get('preset_id')
+    
+    table_headers = []
+    students_data = []
+
+    if selected_preset_id:
+        # Get Preset Info
+        cursor.execute("SELECT * FROM presets WHERE id=?", (selected_preset_id,))
+        preset = cursor.fetchone()
+
+        # 1. Get Subjects (Columns)
+        cursor.execute("SELECT id, name, code, credits FROM subjects WHERE preset_id=?", (selected_preset_id,))
+        subjects = cursor.fetchall()
+        
+        # Prepare headers: Name, Roll, [Sub1, Sub2...], SGPA/CGPA
+        table_headers = ['Roll Number', 'Name'] + [s[1] for s in subjects] + ['SGPA/CGPA']
+        
+        # 2. Find students who have taken these subjects
+        # We find users who have at least one entry in subject_results for any of these subjects
+        if subjects:
+            subject_ids = tuple([s[0] for s in subjects])
+            # Handle case with 1 subject (tuple syntax quirk)
+            if len(subject_ids) == 1:
+                subject_ids = f"({subject_ids[0]})"
+            else:
+                subject_ids = str(subject_ids)
+            
+            query = f"""
+                SELECT DISTINCT u.id, u.name, u.roll_number 
+                FROM users u
+                JOIN subject_results sr ON u.id = sr.user_id
+                WHERE sr.subject_id IN {subject_ids}
+                ORDER BY u.roll_number
+            """
+            cursor.execute(query)
+            students = cursor.fetchall()
+
+            # 3. Build Row Data
+            for student in students:
+                user_id = student[0]
+                row = {
+                    'roll': student[2],
+                    'name': student[1],
+                    'marks': {},
+                    'cgpa': 0
+                }
+
+                # Fetch marks for each subject
+                for sub in subjects:
+                    sub_id = sub[0]
+                    cursor.execute("""
+                        SELECT percentage, grade, grade_point 
+                        FROM subject_results 
+                        WHERE user_id=? AND subject_id=?
+                    """, (user_id, sub_id))
+                    res = cursor.fetchone()
+                    if res:
+                        row['marks'][sub_id] = f"{res[1]} ({int(res[0])}%)"
+                    else:
+                        row['marks'][sub_id] = "-"
+                
+                # Fetch CGPA
+                cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+                cgpa_res = cursor.fetchone()
+                row['cgpa'] = "%.2f" % cgpa_res[0] if cgpa_res else "-"
+                
+                students_data.append(row)
+
+    conn.close()
+
+    return render_template('master_sheet.html', 
+                           presets=presets, 
+                           selected_preset_id=int(selected_preset_id) if selected_preset_id else None,
+                           headers=table_headers,
+                           subjects=subjects if selected_preset_id else [],
+                           students_data=students_data)
+
+@app.route('/admin/master_sheet')
+def master_sheet():
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Fetch all presets for the filter dropdown
+    cursor.execute("SELECT * FROM presets")
+    presets = cursor.fetchall()
+
+    selected_preset_id = request.args.get('preset_id')
+    
+    table_headers = []
+    students_data = []
+    subjects = []
+
+    if selected_preset_id:
+        # Get Preset Info
+        cursor.execute("SELECT * FROM presets WHERE id=?", (selected_preset_id,))
+        preset = cursor.fetchone()
+
+        # 1. Get Subjects (Columns)
+        cursor.execute("SELECT id, name, code, credits FROM subjects WHERE preset_id=?", (selected_preset_id,))
+        subjects = cursor.fetchall()
+        
+        # Prepare headers: Name, Roll, [Sub1, Sub2...], SGPA/CGPA
+        table_headers = ['Roll Number', 'Name'] + [s[1] for s in subjects] + ['SGPA/CGPA']
+        
+        # 2. Find students who have taken these subjects
+        if subjects:
+            subject_ids = tuple([s[0] for s in subjects])
+            # Handle case with 1 subject
+            if len(subject_ids) == 1:
+                query_condition = f"({subject_ids[0]})"
+            else:
+                query_condition = str(subject_ids)
+            
+            query = f"""
+                SELECT DISTINCT u.id, u.name, u.roll_number 
+                FROM users u
+                JOIN subject_results sr ON u.id = sr.user_id
+                WHERE sr.subject_id IN {query_condition}
+                ORDER BY u.roll_number
+            """
+            cursor.execute(query)
+            students = cursor.fetchall()
+
+            # 3. Build Row Data
+            for student in students:
+                user_id = student[0]
+                row = {
+                    'roll': student[2],
+                    'name': student[1],
+                    'marks': {},
+                    'cgpa': 0
+                }
+
+                # Fetch marks for each subject
+                for sub in subjects:
+                    sub_id = sub[0]
+                    cursor.execute("""
+                        SELECT percentage, grade, grade_point 
+                        FROM subject_results 
+                        WHERE user_id=? AND subject_id=?
+                    """, (user_id, sub_id))
+                    res = cursor.fetchone()
+                    if res:
+                        row['marks'][sub_id] = f"{res[1]} ({int(res[0])}%)"
+                    else:
+                        row['marks'][sub_id] = "-"
+                
+                # Fetch CGPA
+                cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+                cgpa_res = cursor.fetchone()
+                row['cgpa'] = "%.2f" % cgpa_res[0] if cgpa_res else "-"
+                
+                students_data.append(row)
+
+    conn.close()
+
+    return render_template('master_sheet.html', 
+                           presets=presets, 
+                           selected_preset_id=int(selected_preset_id) if selected_preset_id else None,
+                           headers=table_headers,
+                           subjects=subjects,
+                           students_data=students_data)
+
+
+@app.route('/admin/master_sheet/download')
+def download_master_csv():
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+    
+    selected_preset_id = request.args.get('preset_id')
+    if not selected_preset_id:
+        flash("Please select a class first.", "error")
+        return redirect(url_for('master_sheet'))
+
+    import csv
+    import io
+    from flask import make_response
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    # Logic mirrors master_sheet but writes to CSV
+    cursor.execute("SELECT * FROM presets WHERE id=?", (selected_preset_id,))
+    preset = cursor.fetchone()
+    # preset name for filename
+    preset_name = f"{preset[2]}_{preset[3]}Yr_{preset[4]}".replace(" ", "_")
+
+    cursor.execute("SELECT id, name, code, credits FROM subjects WHERE preset_id=?", (selected_preset_id,))
+    subjects = cursor.fetchall()
+
+    subject_ids = tuple([s[0] for s in subjects])
+    if len(subject_ids) == 1:
+        query_condition = f"({subject_ids[0]})"
+    else:
+        query_condition = str(subject_ids)
+    
+    query = f"""
+        SELECT DISTINCT u.id, u.name, u.roll_number 
+        FROM users u
+        JOIN subject_results sr ON u.id = sr.user_id
+        WHERE sr.subject_id IN {query_condition}
+        ORDER BY u.roll_number
+    """
+    cursor.execute(query)
+    students = cursor.fetchall()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    headers = ['Roll Number', 'Name'] + [f"{s[1]} (Grade)" for s in subjects] + ['SGPA/CGPA']
+    writer.writerow(headers)
+
+    for student in students:
+        user_id = student[0]
+        row_data = [student[2], student[1]] # Roll, Name
+
+        for sub in subjects:
+            sub_id = sub[0]
+            cursor.execute("SELECT percentage, grade FROM subject_results WHERE user_id=? AND subject_id=?", (user_id, sub_id))
+            res = cursor.fetchone()
+            if res:
+                row_data.append(f"{res[1]} ({int(res[0])}%)")
+            else:
+                row_data.append("-")
+        
+        cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+        cgpa_res = cursor.fetchone()
+        row_data.append("%.2f" % cgpa_res[0] if cgpa_res else "-")
+
+        writer.writerow(row_data)
+
+    conn.close()
+    
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = f"attachment; filename=MasterSheet_{preset_name}.csv"
+    response.headers["Content-type"] = "text/csv"
+    return response
 def download_pdf():
     if 'user' not in session:
         return redirect(url_for('index'))

@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Master Sheet{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem; max-width: 1400px; margin: 0 auto;">
+    <div class="dashboard-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1
+                style="margin: 0; text-align: left; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main);">
+                Master Result Sheet</h1>
+            <p style="color: var(--text-muted); margin: 0;">Comprehensive view of all student performance</p>
+        </div>
+        <div class="actions">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary"
+                style="background: rgba(255,255,255,0.1);">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="glass card" style="margin-bottom: 2rem; padding: 1.5rem;">
+        <form action="{{ url_for('master_sheet') }}" method="get"
+            style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 250px;">
+                <label for="preset_id">Select Class (Preset)</label>
+                <select name="preset_id" id="preset_id" onchange="this.form.submit()">
+                    <option value="" disabled selected>-- Select a Class to View Data --</option>
+                    {% for preset in presets %}
+                    <option value="{{ preset[0] }}" {% if selected_preset_id==preset[0] %}selected{% endif %}>
+                        {{ preset[1] }} - {{ preset[2] }} ({{ preset[3] }} Yr, Div {{ preset[4] }}, Sem {{ preset[5] }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if selected_preset_id %}
+            <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 250px;">
+                <label>Quick Filter (Name/Roll)</label>
+                <input type="text" id="tableFilter" placeholder="Type to filter rows..." onkeyup="filterTable()">
+            </div>
+            <div style="margin-bottom: 0;">
+                <a href="{{ url_for('download_master_csv', preset_id=selected_preset_id) }}" class="btn btn-primary"
+                    style="background: var(--success); height: 100%;">
+                    <i class="fas fa-file-csv"></i> Export to CSV
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if selected_preset_id %}
+    <div class="glass table-container" style="max-height: 70vh; overflow-y: auto;">
+        <table id="masterTable" style="margin: 0;">
+            <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10;">
+                <tr>
+                    {% for header in headers %}
+                    <th style="white-space: nowrap; background: #1e293b;">{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students_data %}
+                <tr>
+                    <td style="font-weight: bold; color: var(--primary);">{{ student.roll }}</td>
+                    <td>{{ student.name }}</td>
+
+                    {% for subject in subjects %}
+                    <td style="text-align: center;">
+                        {{ student.marks[subject[0]] }}
+                    </td>
+                    {% endfor %}
+
+                    <td style="font-weight: bold; color: var(--success); text-align: center; font-size: 1.1rem;">
+                        {% if student.cgpa != '-' %}{{ student.cgpa }}{% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ headers|length }}"
+                        style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                        No student data found for this class.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function filterTable() {
+        var input, filter, table, tr, td, i, txtValue;
+        input = document.getElementById("tableFilter");
+        filter = input.value.toUpperCase();
+        table = document.getElementById("masterTable");
+        tr = table.getElementsByTagName("tr");
+
+        for (i = 1; i < tr.length; i++) { // Start from 1 to skip header
+            // Search Name (col 1) and Roll (col 0)
+            var tdRoll = tr[i].getElementsByTagName("td")[0];
+            var tdName = tr[i].getElementsByTagName("td")[1];
+
+            if (tdRoll || tdName) {
+                var txtRoll = tdRoll.textContent || tdRoll.innerText;
+                var txtName = tdName.textContent || tdName.innerText;
+
+                if (txtRoll.toUpperCase().indexOf(filter) > -1 || txtName.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
