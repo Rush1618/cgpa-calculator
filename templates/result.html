@@ -19,28 +19,26 @@
     {% else %}
 
     {% for preset_id, data in grouped_results.items() %}
-    <div class="glass card" style="margin-bottom: 2rem; position: relative; overflow: hidden;">
-        <div
-            style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;">
+    <div class="glass card result-card">
+        <div class="semester-header">
             <div>
                 <h2 style="margin: 0; color: var(--primary);">{{ data.course }}</h2>
                 <p style="margin: 0; color: var(--text-muted);">{{ data.year }} Year &bull; Semester {{ data.semester }}
                 </p>
             </div>
-            <div style="text-align: right;">
-                <span style="font-size: 0.9rem; color: var(--text-dim); display: block;">SGPA</span>
-                <span style="font-size: 2.5rem; font-weight: 700; color: var(--success); line-height: 1;">{{ data.sgpa
-                    }}</span>
+            <div class="sgpa-display">
+                <span class="sgpa-label">SGPA</span>
+                <span class="sgpa-value">{{ data.sgpa }}</span>
             </div>
         </div>
 
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 500px;">
                 <thead>
                     <tr style="border-bottom: 2px solid var(--glass-border); text-align: left;">
                         <th style="padding: 1rem; color: var(--text-muted);">Subject</th>
                         <th style="padding: 1rem; color: var(--text-muted);">Marks</th>
-                        <th style="padding: 1rem; color: var(--text-muted);">Percentage</th>
+                        <th style="padding: 1rem; color: var(--text-muted);">%</th>
                         <th style="padding: 1rem; color: var(--text-muted);">Grade</th>
                         <th style="padding: 1rem; color: var(--text-muted);">Credits</th>
                     </tr>
@@ -52,7 +50,9 @@
                         <td style="padding: 1rem;">{{ subject.obtained }} / {{ subject.max }}</td>
                         <td style="padding: 1rem;">{{ "%.2f"|format(subject.percentage) }}%</td>
                         <td style="padding: 1rem;">
-                            <span class="grade-badge {{ subject.grade[0] }}">{{ subject.grade }}</span>
+                            <span class="grade-badge {{ subject.grade }}">
+                                {{ subject.grade }}
+                            </span>
                         </td>
                         <td style="padding: 1rem;">{{ subject.credits }}</td>
                     </tr>

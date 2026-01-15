@@ -685,6 +685,116 @@ footer i {
     color: var(--info) !important;
 }
 
+/* Result & Semester Layouts */
+.result-card {
+    margin-bottom: 2.5rem;
+    border: 1px solid var(--glass-border);
+}
+
+.semester-header {
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.sgpa-display {
+    text-align: right;
+}
+
+.sgpa-label {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.sgpa-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--success);
+    line-height: 1;
+}
+
+.grade-badge {
+    padding: 0.25rem 0.85rem;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-block;
+    color: white !important;
+}
+
+.grade-badge.O,
+.grade-badge.A,
+.grade-badge.A\+ {
+    background: var(--success);
+}
+
+.grade-badge.B,
+.grade-badge.C,
+.grade-badge.B\+ {
+    background: var(--info);
+}
+
+.grade-badge.D,
+.grade-badge.P {
+    background: var(--warning);
+}
+
+.grade-badge.F {
+    background: var(--danger);
+}
+
+.subject-card {
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 14px;
+    padding: 1.25rem;
+    border: 1px solid var(--glass-border);
+    margin-bottom: 1.25rem;
+    transition: transform 0.2s ease;
+}
+
+.subject-card:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.6);
+}
+
+.subject-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+    .semester-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .sgpa-display {
+        text-align: left;
+    }
+
+    .sgpa-value {
+        font-size: 2.25rem;
+    }
+
+    .subject-card-header {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .subject-card-header div:last-child {
+        text-align: left !important;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     h1 {

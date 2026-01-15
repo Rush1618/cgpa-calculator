@@ -37,65 +37,65 @@
         {% else %}
 
         {% for preset_id, data in grouped_results.items() %}
-        <div class="glass card" style="border: 1px solid var(--glass-border);">
-            <div
-                style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div class="glass card result-card">
+            <div class="semester-header">
                 <div>
                     <h2 style="margin: 0; color: var(--primary);">{{ data.course }}</h2>
                     <p style="margin: 0; color: var(--text-muted);">{{ data.year }} Year &bull; Semester {{
                         data.semester }}</p>
                 </div>
-                <div style="text-align: right;">
-                    <span style="font-size: 0.9rem; color: var(--text-dim); display: block;">SGPA</span>
-                    <span style="font-size: 2rem; font-weight: 700; color: var(--success); line-height: 1;">{{ data.sgpa
-                        }}</span>
+                <div class="sgpa-display">
+                    <span class="sgpa-label">SGPA</span>
+                    <span class="sgpa-value">{{ data.sgpa }}</span>
                 </div>
             </div>
 
             <div style="display: grid; gap: 1rem;">
                 {% for subject in data.subjects %}
-                <div
-                    style="background: rgba(255,255,255,0.03); border-radius: 8px; padding: 1rem; border: 1px solid rgba(255,255,255,0.05);">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                <div class="subject-card">
+                    <div class="subject-card-header">
                         <div>
                             <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-light);">{{ subject.name }}</h3>
                             <span style="font-size: 0.8rem; color: var(--text-muted);">{{ subject.code }} &bull;
                                 Credits: {{ subject.credits }}</span>
                         </div>
                         <div style="text-align: right;">
-                            <span class="{% if subject.grade == 'F' %}text-danger{% else %}text-success{% endif %}"
-                                style="font-size: 1.2rem; font-weight: bold; display: block;">
+                            <span class="grade-badge {{ subject.grade }}">
                                 {{ subject.grade }}
                             </span>
-                            <span style="font-size: 0.8rem; color: var(--text-muted);">GP: {{ subject.point }}</span>
+                            <span
+                                style="font-size: 0.8rem; color: var(--text-dim); display: block; margin-top: 0.25rem;">GP:
+                                {{ subject.point }}</span>
                         </div>
                     </div>
 
-                    <!-- Detailed Components Table -->
-                    <table class="glass-table" style="margin-bottom: 0; font-size: 0.9rem;">
-                        <thead>
-                            <tr style="background: rgba(0,0,0,0.02);">
-                                <th style="padding: 0.5rem;">Component</th>
-                                <th style="padding: 0.5rem;">Obtained</th>
-                                <th style="padding: 0.5rem;">Max</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for comp in detailed_marks[subject.id] %}
-                            <tr>
-                                <td style="padding: 0.5rem;">{{ comp[0] }}</td>
-                                <td style="padding: 0.5rem;">{{ comp[1] }}</td>
-                                <td style="padding: 0.5rem;">{{ comp[2] }}</td>
-                            </tr>
-                            {% endfor %}
-                            <tr style="font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1);">
-                                <td style="padding: 0.5rem;">Total</td>
-                                <td style="padding: 0.5rem;">{{ subject.obtained }}</td>
-                                <td style="padding: 0.5rem;">{{ subject.max }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <!-- Detailed Components -->
+                    <div style="overflow-x: auto;">
+                        <table class="glass-table" style="margin-bottom: 0; font-size: 0.9rem; min-width: 300px;">
+                            <thead>
+                                <tr style="background: rgba(0,0,0,0.02);">
+                                    <th style="padding: 0.6rem;">Component</th>
+                                    <th style="padding: 0.6rem;">Obtained</th>
+                                    <th style="padding: 0.6rem;">Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for comp in detailed_marks[subject.id] %}
+                                <tr>
+                                    <td style="padding: 0.5rem 0.6rem;">{{ comp[0] }}</td>
+                                    <td style="padding: 0.5rem 0.6rem;">{{ comp[1] }}</td>
+                                    <td style="padding: 0.5rem 0.6rem;">{{ comp[2] }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr
+                                    style="font-weight: bold; border-top: 1px solid var(--glass-border); background: rgba(79, 70, 229, 0.03);">
+                                    <td style="padding: 0.6rem;">Total</td>
+                                    <td style="padding: 0.6rem;">{{ subject.obtained }}</td>
+                                    <td style="padding: 0.6rem;">{{ subject.max }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
