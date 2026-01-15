@@ -122,7 +122,7 @@ def additional_info():
         conn.commit()
         conn.close()
 
-        return redirect('/')
+        return redirect(url_for('student_dashboard'))
 
     return render_template('additional_info.html')
 
