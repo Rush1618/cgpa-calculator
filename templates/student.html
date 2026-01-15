@@ -5,119 +5,149 @@
 {% block content %}
 <div style="padding-top: 2rem; max-width: 800px; margin: 0 auto;">
 
-    {% if not subjects %}
-    <div class="glass card">
-        <h2 style="text-align: center; margin-bottom: 2rem;">Select Your Class</h2>
-        <form action="{{ url_for('student_dashboard') }}" method="post">
-            <div class="form-group">
-                <label for="academic_year">Academic Year</label>
-                <select id="academic_year" name="academic_year" required>
-                    <option value="" disabled selected>Select Academic Year</option>
-                    {% for item in academic_years %}
-                    <option value="{{ item }}">{{ item }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="course">Course</label>
-                <select id="course" name="course" required>
-                    <option value="" disabled selected>Select Course</option>
-                    {% for item in courses %}
-                    <option value="{{ item }}">{{ item }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label for="year">Year</label>
-                    <select id="year" name="year" required>
-                        <option value="" disabled selected>Select Year</option>
-                        {% for item in years %}
-                        <option value="{{ item }}">{{ item }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="division">Division</label>
-                    <select id="division" name="division" required>
-                        <option value="" disabled selected>Select Division</option>
-                        {% for item in divisions %}
-                        <option value="{{ item }}">{{ item }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="semester">Semester</label>
-                    <select id="semester" name="semester" required>
-                        <option value="" disabled selected>Select Semester</option>
-                        {% for item in semesters %}
-                        <option value="{{ item }}">{{ item }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <button type="submit" name="action" value="load_subjects" class="btn btn-primary"
-                style="width: 100%; margin-top: 1rem;">
-                <i class="fas fa-search"></i> Load Subjects
-            </button>
-        </form>
-    </div>
-
-    {% if preset_not_found %}
-    <div class="flash-card error" style="margin-top: 1.5rem; position: static;">
-        <i class="fas fa-exclamation-circle"></i>
-        <span>Preset not found. Please check your selection or contact admin.</span>
-    </div>
-    {% endif %}
-
-    {% else %}
-
     <div style="text-align: center; margin-bottom: 2rem;">
-        <h1>Your Subjects</h1>
-        <p style="color: var(--text-muted);">
-            {{ academic_year }} &bull; {{ course }} &bull; Year {{ year }} &bull; Sem {{ semester }}
-        </p>
+        <h1 style="color: var(--text-main);">Calculate Your CGPA</h1>
+        <p style="color: var(--text-muted);">Select your class details to proceed.</p>
     </div>
 
-    <form action="{{ url_for('student_dashboard') }}" method="post">
-        <!-- Hidden inputs to maintain state -->
-        <input type="hidden" name="academic_year" value="{{ academic_year }}">
-        <input type="hidden" name="course" value="{{ course }}">
-        <input type="hidden" name="year" value="{{ year }}">
-        <input type="hidden" name="division" value="{{ division }}">
-        <input type="hidden" name="semester" value="{{ semester }}">
+    <div class="glass card" style="padding: 2rem;">
+        <form method="post">
+            <input type="hidden" name="action"
+                value="{% if subjects %}calculate_cgpa{% else %}load_subjects{% endif %}">
 
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            {% for subject in subjects %}
-            <div class="glass card">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
-                    <h3 style="margin: 0; color: var(--primary);">{{ subject[2] }}</h3>
-                    <span style="font-size: 0.9rem; color: var(--text-muted);">{{ subject[3] }}</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label>Academic Year</label>
+                    <select name="academic_year" class="form-control" required {% if subjects %}readonly
+                        style="pointer-events: none; opacity: 0.7;" {% endif %}>
+                        {% if academic_year %}
+                        <option value="{{ academic_year }}" selected>{{ academic_year }}</option>
+                        {% else %}
+                        <option value="" disabled selected>Select Year</option>
+                        {% for ay in academic_years %}
+                        <option value="{{ ay }}">{{ ay }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
                 </div>
-                <input type="hidden" name="subjects" value="{{ subject[0] }}">
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                    {% for component in subject_components[subject[0]] %}
-                    <div>
-                        <label style="font-size: 0.85rem;">{{ component[2] }} (Max: {{ component[3] }})</label>
-                        <input type="number" name="marks_{{ component[0] }}" min="0" max="{{ component[3] }}"
-                            placeholder="0" required>
+                <div class="form-group">
+                    <label>Course</label>
+                    <select name="course" class="form-control" required {% if subjects %}readonly
+                        style="pointer-events: none; opacity: 0.7;" {% endif %}>
+                        {% if course %}
+                        <option value="{{ course }}" selected>{{ course }}</option>
+                        {% else %}
+                        <option value="" disabled selected>Select Course</option>
+                        {% for c in courses %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Year</label>
+                    <select name="year" class="form-control" required {% if subjects %}readonly
+                        style="pointer-events: none; opacity: 0.7;" {% endif %}>
+                        {% if year %}
+                        <option value="{{ year }}" selected>{{ year }}</option>
+                        {% else %}
+                        <option value="" disabled selected>Select Year</option>
+                        {% for y in years %}
+                        <option value="{{ y }}">{{ y }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Division</label>
+                    <select name="division" class="form-control" required {% if subjects %}readonly
+                        style="pointer-events: none; opacity: 0.7;" {% endif %}>
+                        {% if division %}
+                        <option value="{{ division }}" selected>{{ division }}</option>
+                        {% else %}
+                        <option value="" disabled selected>Select Division</option>
+                        {% for d in divisions %}
+                        <option value="{{ d }}">{{ d }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>Semester</label>
+                    <select name="semester" class="form-control" required {% if subjects %}readonly
+                        style="pointer-events: none; opacity: 0.7;" {% endif %}>
+                        {% if semester %}
+                        <option value="{{ semester }}" selected>{{ semester }}</option>
+                        {% else %}
+                        <option value="" disabled selected>Select Semester</option>
+                        {% for s in semesters %}
+                        <option value="{{ s }}">{{ s }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+
+            {% if not subjects %}
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Load Subjects <i class="fas fa-arrow-right"></i>
+            </button>
+            {% else %}
+
+            <div style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 2rem;">
+                <h3 style="margin-bottom: 1.5rem; color: var(--text-main);">Enter Marks</h3>
+
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for subject in subjects %}
+                    <div class="glass" style="padding: 1.5rem; background: rgba(255,255,255,0.5);">
+                        <div
+                            style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: var(--primary);">
+                            <strong style="font-size: 1.1rem;">{{ subject[2] }}</strong>
+                            <span
+                                style="font-size: 0.9rem; background: rgba(79, 70, 229, 0.1); padding: 0.2rem 0.8rem; border-radius: 20px;">
+                                {{ subject[4] }} Credits
+                            </span>
+                        </div>
+                        <input type="hidden" name="subjects" value="{{ subject[0] }}">
+
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                            {% for comp in subject_components[subject[0]] %}
+                            <div class="form-group">
+                                <label style="font-size: 0.85rem; color: var(--text-light);">{{ comp[2] }} (Max: {{
+                                    comp[3] }})</label>
+                                <input type="number" step="0.01" name="marks_{{ comp[0] }}" placeholder="Obtained Marks"
+                                    class="form-control" max="{{ comp[3] }}">
+                            </div>
+                            {% endfor %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
+
+                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary"
+                        style="flex: 1; text-align: center; background: var(--text-dim); color: white;">
+                        Back
+                    </a>
+                    <button type="submit" class="btn btn-primary" style="flex: 2; background: var(--success);">
+                        <i class="fas fa-calculator"></i> Calculate CGPA
+                    </button>
+                </div>
             </div>
-            {% endfor %}
-        </div>
+            {% endif %}
 
-        <div style="margin-top: 2rem; text-align: center; padding-bottom: 4rem;">
-            <button type="submit" name="action" value="calculate_cgpa" class="btn btn-primary"
-                style="font-size: 1.2rem; padding: 1rem 3rem;">
-                <i class="fas fa-calculator"></i> Calculate CGPA
-            </button>
-        </div>
-    </form>
-    {% endif %}
-
+            {% if preset_not_found %}
+            <div
+                style="margin-top: 1rem; color: var(--danger); text-align: center; background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 8px;">
+                <i class="fas fa-exclamation-circle"></i> No preset found for these details. Please contact admin.
+            </div>
+            {% endif %}
+        </form>
+    </div>
 </div>
 {% endblock %}

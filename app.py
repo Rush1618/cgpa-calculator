@@ -165,6 +165,71 @@ def upload_db():
     return redirect(url_for('admin_dashboard'))
 
 
+@app.route('/admin/db/migrate', methods=['POST'])
+def migrate_db():
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+    
+    if 'db_file' not in request.files:
+        flash('No file part', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
+    file = request.files['db_file']
+    
+    if file.filename == '':
+        flash('No selected file', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
+    if file:
+        try:
+            import os
+            import sys
+            
+            # Save uploaded file temporarily
+            temp_old_db = 'temp_old_backup.db'
+            file.save(temp_old_db)
+            
+            # Import migration function
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'migration_tools'))
+            from migrate_database import migrate_database
+            
+            # Run migration
+            temp_migrated_db = 'temp_migrated.db'
+            success = migrate_database(temp_old_db, temp_migrated_db)
+            
+            if success:
+                # Backup current database
+                import shutil
+                from datetime import datetime
+                backup_name = f'backup_before_migration_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db'
+                if os.path.exists('database.db'):
+                    shutil.copy('database.db', backup_name)
+                
+                # Replace with migrated database
+                shutil.move(temp_migrated_db, 'database.db')
+                
+                # Cleanup
+                if os.path.exists(temp_old_db):
+                    os.remove(temp_old_db)
+                
+                flash(f'Database migrated successfully! Old database backed up as {backup_name}', 'success')
+            else:
+                flash('Migration failed. Please check the uploaded file.', 'error')
+                
+        except Exception as e:
+            flash(f"Error during migration: {str(e)}", "error")
+            import traceback
+            print(traceback.format_exc())
+        finally:
+            # Cleanup temp files
+            if os.path.exists('temp_old_backup.db'):
+                os.remove('temp_old_backup.db')
+            if os.path.exists('temp_migrated.db'):
+                os.remove('temp_migrated.db')
+            
+    return redirect(url_for('admin_dashboard'))
+
+
 @app.route('/admin/presets/edit/<int:preset_id>', methods=['POST'])
 def edit_preset(preset_id):
     if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
@@ -481,23 +546,40 @@ def view_result():
     conn = create_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id FROM users WHERE email=?", (session['user']['email'],))
-    user_id = cursor.fetchone()[0]
+    try:
+        cursor.execute("SELECT id FROM users WHERE email=?", (session['user']['email'],))
+        user_res = cursor.fetchone()
+        
+        if not user_res:
+            # User in session but not in DB (stale session)
+            session.pop('user', None)
+            flash("Session expired or user not found. Please log in again.", "error")
+            return redirect(url_for('login'))
+            
+        user_id = user_res[0]
 
-    cursor.execute("""
-        SELECT s.name, sr.total_obtained, sr.total_max, sr.percentage, sr.grade, sr.grade_point
-        FROM subject_results sr
-        JOIN subjects s ON sr.subject_id = s.id
-        WHERE sr.user_id = ?
-    """, (user_id,))
-    subject_results = cursor.fetchall()
+        cursor.execute("""
+            SELECT s.name, sr.total_obtained, sr.total_max, sr.percentage, sr.grade, sr.grade_point
+            FROM subject_results sr
+            JOIN subjects s ON sr.subject_id = s.id
+            WHERE sr.user_id = ?
+        """, (user_id,))
+        subject_results = cursor.fetchall()
 
-    cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
-    cgpa = cursor.fetchone()
+        cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+        cgpa = cursor.fetchone()
 
-    conn.close()
-
-    return render_template('result.html', subject_results=subject_results, cgpa=cgpa)
+        conn.close()
+        return render_template('result.html', subject_results=subject_results, cgpa=cgpa)
+        
+    except Exception as e:
+        import traceback
+        print(f"Error viewing results: {e}")
+        print(traceback.format_exc())
+        if 'conn' in locals():
+            conn.close()
+        flash("An error occurred while loading results.", "error")
+        return redirect(url_for('student_dashboard'))
 
 
 @app.route('/admin/students')

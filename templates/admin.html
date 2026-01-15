@@ -140,6 +140,24 @@
                 </button>
             </form>
         </div>
+
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--glass-border);">
+            <h3>Migrate Old Database</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+                Upload an old database backup to automatically convert it to the new schema.
+                <span style="color: var(--info);">✨ Recommended for old backups!</span>
+            </p>
+            <form action="{{ url_for('migrate_db') }}" method="post" enctype="multipart/form-data">
+                <input type="file" name="db_file" accept=".db" required style="margin-bottom: 1rem;">
+                <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--info);"
+                    onclick="return confirm('This will migrate and apply the old database. Your current database will be backed up first. Continue?');">
+                    <i class="fas fa-magic"></i> Migrate & Apply
+                </button>
+            </form>
+            <p style="color: var(--text-dim); margin-top: 0.5rem; font-size: 0.8rem;">
+                💡 This converts INTEGER fields to REAL and updates grading rules automatically.
+            </p>
+        </div>
     </div>
 </div>
 

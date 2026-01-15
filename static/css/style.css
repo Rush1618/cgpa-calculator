@@ -1,53 +1,57 @@
 :root {
-    /* Modern Professional Color Palette */
-    /* Primary - Deep Blue */
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
-    --primary-glow: rgba(59, 130, 246, 0.4);
+    /* Modern Light Color Palette */
+    /* Primary - Soft Blue */
+    --primary: #4f46e5;
+    --primary-dark: #4338ca;
+    --primary-light: #6366f1;
+    --primary-glow: rgba(79, 70, 229, 0.15);
 
-    /* Secondary - Vibrant Purple */
-    --secondary: #a855f7;
-    --secondary-dark: #9333ea;
-    --secondary-light: #c084fc;
-    --secondary-glow: rgba(168, 85, 247, 0.4);
+    /* Secondary - Soft Purple */
+    --secondary: #7c3aed;
+    --secondary-dark: #6d28d9;
+    --secondary-light: #8b5cf6;
+    --secondary-glow: rgba(124, 58, 237, 0.15);
 
     /* Accent - Warm Coral */
-    --accent: #f97316;
-    --accent-light: #fb923c;
-    --accent-glow: rgba(249, 115, 22, 0.4);
+    --accent: #f59e0b;
+    --accent-light: #fbbf24;
+    --accent-glow: rgba(245, 158, 11, 0.15);
 
-    /* Backgrounds - Deep Navy */
-    --bg-dark: #0f172a;
-    --bg-darker: #020617;
-    --bg-card: #1e293b;
+    /* Backgrounds - Light & Airy */
+    --bg-light: #f8fafc;
+    --bg-lighter: #ffffff;
+    --bg-card: #ffffff;
+    --bg-gradient-start: #faf5ff;
+    --bg-gradient-end: #eff6ff;
 
-    /* Glass Effects */
-    --glass-bg: rgba(30, 41, 59, 0.4);
-    --glass-border: rgba(148, 163, 184, 0.1);
-    --glass-hover: rgba(30, 41, 59, 0.6);
+    /* Glass Effects - Light */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(79, 70, 229, 0.1);
+    --glass-hover: rgba(255, 255, 255, 0.9);
 
-    /* Text Colors */
-    --text-main: #f1f5f9;
-    --text-light: #e2e8f0;
-    --text-muted: #94a3b8;
-    --text-dim: #64748b;
+    /* Text Colors - Dark on Light */
+    --text-main: #1e293b;
+    --text-light: #334155;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
 
     /* Status Colors */
-    --success: #22c55e;
-    --success-glow: rgba(34, 197, 94, 0.3);
+    --success: #10b981;
+    --success-light: #34d399;
+    --success-glow: rgba(16, 185, 129, 0.15);
     --danger: #ef4444;
-    --danger-glow: rgba(239, 68, 68, 0.3);
+    --danger-light: #f87171;
+    --danger-glow: rgba(239, 68, 68, 0.15);
     --warning: #f59e0b;
-    --warning-glow: rgba(245, 158, 11, 0.3);
+    --warning-glow: rgba(245, 158, 11, 0.15);
     --info: #06b6d4;
 
-    /* Shadows - Enhanced for depth */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
-    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+    /* Shadows - Soft & Subtle */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.15);
 }
 
 * {
@@ -58,7 +62,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 50%, #1a1f35 100%);
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
@@ -66,7 +70,7 @@ body {
     line-height: 1.6;
 }
 
-/* Enhanced Background Orbs */
+/* Soft Background Orbs for Light Theme */
 .background-orbs {
     position: fixed;
     top: 0;
@@ -81,8 +85,8 @@ body {
 .orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.4;
+    filter: blur(100px);
+    opacity: 0.3;
     animation: float 25s infinite ease-in-out;
     will-change: transform;
 }
@@ -92,7 +96,7 @@ body {
     left: -10%;
     width: 700px;
     height: 700px;
-    background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    background: radial-gradient(circle, #ddd6fe 0%, transparent 70%);
     animation-delay: 0s;
 }
 
@@ -101,7 +105,7 @@ body {
     right: -10%;
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+    background: radial-gradient(circle, #dbeafe 0%, transparent 70%);
     animation-delay: -8s;
 }
 
@@ -110,7 +114,7 @@ body {
     left: 50%;
     width: 400px;
     height: 400px;
-    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    background: radial-gradient(circle, #fef3c7 0%, transparent 70%);
     animation-delay: -16s;
 }
 
@@ -159,10 +163,10 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(15, 23, 42, 0.9);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(20px) saturate(180%);
     border-bottom: 1px solid var(--glass-border);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
 }
 
 /* Enhanced Typography */
@@ -419,7 +423,7 @@ select,
 textarea {
     width: 100%;
     padding: 0.9rem 1.2rem;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--bg-lighter);
     border: 1.5px solid var(--glass-border);
     border-radius: 12px;
     color: var(--text-main);
@@ -436,7 +440,7 @@ select:focus,
 textarea:focus {
     outline: none;
     border-color: var(--primary);
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-lighter);
     box-shadow: 0 0 0 3px var(--primary-glow);
     z-index: 2;
 }
@@ -449,7 +453,7 @@ textarea::placeholder {
 /* Enhanced Tables */
 .table-container {
     overflow-x: auto;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--bg-lighter);
     border-radius: 20px;
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-md);
@@ -468,8 +472,8 @@ td {
 }
 
 th {
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text-muted);
+    background: rgba(79, 70, 229, 0.05);
+    color: var(--text-light);
     font-weight: 600;
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -484,7 +488,7 @@ tr {
 }
 
 tr:hover {
-    background: rgba(59, 130, 246, 0.05);
+    background: rgba(79, 70, 229, 0.03);
 }
 
 tbody tr:last-child td {

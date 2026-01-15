@@ -4,14 +4,19 @@
 
 {% block content %}
 <div class="login-container">
-    <div class="glass login-card">
-        <h1>Welcome Back</h1>
-        <p style="color: var(--text-muted); margin-bottom: 2rem;">Sign in to access your dashboard</p>
+    <div class="glass" style="max-width: 400px; width: 90%; padding: 3rem; text-align: center;">
+        <div style="margin-bottom: 2rem;">
+            <i class="fas fa-graduation-cap" style="font-size: 4rem; color: var(--primary);"></i>
+        </div>
 
-        <a href="{{ url_for('login') }}" class="google-btn">
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo"
+        <h1 style="margin-bottom: 0.5rem; color: var(--text-main);">Welcome Back</h1>
+        <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Sign in to access your CGPA dashboard</p>
+
+        <a href="{{ url_for('login') }}" class="btn btn-primary"
+            style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 1rem;">
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google"
                 style="width: 24px; height: 24px;">
-            <span>Sign in with Google</span>
+            Continue with Google
         </a>
     </div>
 </div>

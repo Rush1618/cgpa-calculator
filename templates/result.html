@@ -33,7 +33,7 @@
             <tbody>
                 {% for result in subject_results %}
                 <tr>
-                    <td style="font-weight: 500; color: white;">{{ result[0] }}</td>
+                    <td style="font-weight: 500; color: var(--text-main);">{{ result[0] }}</td>
                     <td>{{ result[1] }}</td>
                     <td>{{ result[2] }}</td>
                     <td>{{ "%.2f"|format(result[3]) }}%</td>
@@ -53,12 +53,6 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
-
-    <div style="margin-top: 2rem; text-align: right;">
-        <a href="{{ url_for('download_pdf') }}" class="btn btn-primary" style="background: var(--secondary);">
-            <i class="fas fa-file-pdf"></i> Download PDF
-        </a>
     </div>
     {% else %}
     <div class="glass card" style="text-align: center; padding: 4rem;">
