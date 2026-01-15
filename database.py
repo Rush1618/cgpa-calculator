@@ -60,7 +60,7 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             component_id INTEGER NOT NULL,
-            marks_obtained INTEGER NOT NULL,
+            marks_obtained REAL NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (component_id) REFERENCES components (id)
         )
@@ -72,11 +72,11 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             subject_id INTEGER NOT NULL,
-            total_obtained INTEGER NOT NULL,
-            total_max INTEGER NOT NULL,
+            total_obtained REAL NOT NULL,
+            total_max REAL NOT NULL,
             percentage REAL NOT NULL,
             grade TEXT NOT NULL,
-            grade_point INTEGER NOT NULL,
+            grade_point REAL NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id),
             FOREIGN KEY (subject_id) REFERENCES subjects (id)
         )
@@ -96,10 +96,10 @@ def create_tables():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS grading_rules (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            min_percentage INTEGER NOT NULL,
-            max_percentage INTEGER NOT NULL,
+            min_percentage REAL NOT NULL,
+            max_percentage REAL NOT NULL,
             grade TEXT NOT NULL,
-            grade_point INTEGER NOT NULL
+            grade_point REAL NOT NULL
         )
     """)
 
