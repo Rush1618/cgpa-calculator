@@ -353,42 +353,20 @@ def student_dashboard():
     if request.method == 'POST':
         action = request.form.get('action')
 
-        academic_year = request.form['academic_year']
-        course = request.form['course']
-        year = request.form['year']
-        division = request.form['division']
-        semester = request.form['semester']
-
-        cursor.execute(
-            "SELECT id FROM presets WHERE academic_year=? AND course=? AND year=? AND division=? AND semester=?",
-            (academic_year, course, year, division, semester)
-        )
-        preset = cursor.fetchone()
-
         if action == 'load_subjects':
+            preset_id = request.form.get('preset_id')
+            
+            if not preset_id:
+                flash("Please select a class.", "error")
+                return redirect(url_for('student_dashboard'))
+                
+            cursor.execute("SELECT * FROM presets WHERE id=?", (preset_id,))
+            preset = cursor.fetchone()
+
             if not preset:
-                # Fetch options again to re-render dropdowns
-                cursor.execute("SELECT DISTINCT academic_year FROM presets")
-                academic_years = [row[0] for row in cursor.fetchall()]
+                flash("Selected class not found.", "error")
+                return redirect(url_for('student_dashboard'))
 
-                cursor.execute("SELECT DISTINCT course FROM presets")
-                courses = [row[0] for row in cursor.fetchall()]
-
-                cursor.execute("SELECT DISTINCT year FROM presets")
-                years = [row[0] for row in cursor.fetchall()]
-
-                cursor.execute("SELECT DISTINCT division FROM presets")
-                divisions = [row[0] for row in cursor.fetchall()]
-
-                cursor.execute("SELECT DISTINCT semester FROM presets")
-                semesters = [row[0] for row in cursor.fetchall()]
-                conn.close()
-
-                return render_template('student.html', preset_not_found=True,
-                                       academic_years=academic_years, courses=courses,
-                                       years=years, divisions=divisions, semesters=semesters)
-
-            preset_id = preset[0]
             cursor.execute("SELECT * FROM subjects WHERE preset_id=?", (preset_id,))
             subjects = cursor.fetchall()
 
@@ -396,17 +374,18 @@ def student_dashboard():
             for s in subjects:
                 cursor.execute("SELECT * FROM components WHERE subject_id=?", (s[0],))
                 subject_components[s[0]] = cursor.fetchall()
-
+            
+            # Fetch all presets again to keep the dropdown populated
+            cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets")
+            presets = cursor.fetchall()
+            
             conn.close()
             return render_template(
                 'student.html',
+                presets=presets,
+                selected_preset=preset,
                 subjects=subjects,
-                subject_components=subject_components,
-                academic_year=academic_year,
-                course=course,
-                year=year,
-                division=division,
-                semester=semester
+                subject_components=subject_components
             )
 
         elif action == 'calculate_cgpa':
@@ -486,6 +465,13 @@ def student_dashboard():
                         (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point)
                     )
 
+                # Note: We calculate a global CGPA here, but for display we will calculate semester-wise SGPA dynamically.
+                # Use total_credits and total_weighted_points from just this calculation? 
+                # NO, the current request calculates CGPA based only on *submitted* subjects.
+                # If we want a true global CGPA, we'd need to fetch ALL past results. 
+                # For now, let's keep this as storing a "latest run" CGPA in the cgpa table, 
+                # but relies on separate SGPA calculation in view_result.
+                
                 cgpa = total_weighted_points / total_credits if total_credits else 0
 
                 cursor.execute(
@@ -496,7 +482,7 @@ def student_dashboard():
                 conn.commit()
                 conn.close()
                 
-                flash("CGPA calculated successfully!", "success")
+                flash("Grades calculated successfully!", "success")
                 return redirect(url_for('view_result'))
                 
             except Exception as e:
@@ -510,32 +496,13 @@ def student_dashboard():
                 flash(f"An error occurred during calculation: {str(e)}", "error")
                 return redirect(url_for('student_dashboard'))
 
-    # GET request: Fetch options for dropdowns
-    cursor.execute("SELECT DISTINCT academic_year FROM presets")
-    academic_years = [row[0] for row in cursor.fetchall()]
-
-    cursor.execute("SELECT DISTINCT course FROM presets")
-    courses = [row[0] for row in cursor.fetchall()]
-
-    cursor.execute("SELECT DISTINCT year FROM presets")
-    years = [row[0] for row in cursor.fetchall()]
-
-    cursor.execute("SELECT DISTINCT division FROM presets")
-    divisions = [row[0] for row in cursor.fetchall()]
-
-    cursor.execute("SELECT DISTINCT semester FROM presets")
-    semesters = [row[0] for row in cursor.fetchall()]
+    # GET request: Fetch all presets for the dropdown
+    cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets")
+    presets = cursor.fetchall()
 
     conn.close()
 
-    return render_template(
-        'student.html',
-        academic_years=academic_years,
-        courses=courses,
-        years=years,
-        divisions=divisions,
-        semesters=semesters
-    )
+    return render_template('student.html', presets=presets)
 
 
 @app.route('/result')
@@ -551,26 +518,75 @@ def view_result():
         user_res = cursor.fetchone()
         
         if not user_res:
-            # User in session but not in DB (stale session)
             session.pop('user', None)
             flash("Session expired or user not found. Please log in again.", "error")
             return redirect(url_for('login'))
             
         user_id = user_res[0]
 
+        # Fetch subject results joined with subject and preset info
         cursor.execute("""
-            SELECT s.name, sr.total_obtained, sr.total_max, sr.percentage, sr.grade, sr.grade_point
+            SELECT 
+                p.id as preset_id,
+                p.course,
+                p.year,
+                p.semester,
+                s.name as subject_name, 
+                sr.total_obtained, 
+                sr.total_max, 
+                sr.percentage, 
+                sr.grade, 
+                sr.grade_point,
+                s.credits
             FROM subject_results sr
             JOIN subjects s ON sr.subject_id = s.id
+            JOIN presets p ON s.preset_id = p.id
             WHERE sr.user_id = ?
+            ORDER BY p.year DESC, p.semester DESC
         """, (user_id,))
-        subject_results = cursor.fetchall()
+        
+        raw_results = cursor.fetchall()
+        
+        # Group results by preset (Semester)
+        grouped_results = {}
+        # Structure: { preset_id: { 'details': preset_details, 'subjects': [], 'sgpa': 0.0 } }
+        
+        for row in raw_results:
+            preset_id = row[0]
+            if preset_id not in grouped_results:
+                grouped_results[preset_id] = {
+                    'course': row[1],
+                    'year': row[2],
+                    'semester': row[3],
+                    'subjects': [],
+                    'total_credits': 0,
+                    'total_points': 0
+                }
+            
+            # Add subject info
+            grouped_results[preset_id]['subjects'].append({
+                'name': row[4],
+                'obtained': row[5],
+                'max': row[6],
+                'percentage': row[7],
+                'grade': row[8],
+                'point': row[9],
+                'credits': row[10]
+            })
+            
+            # Accumulate for SGPA
+            grouped_results[preset_id]['total_credits'] += row[10]
+            grouped_results[preset_id]['total_points'] += (row[9] * row[10]) # grade_point * credits
 
-        cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
-        cgpa = cursor.fetchone()
+        # Calculate SGPA for each group
+        for pid, data in grouped_results.items():
+            if data['total_credits'] > 0:
+                data['sgpa'] = round(data['total_points'] / data['total_credits'], 2)
+            else:
+                data['sgpa'] = 0.0
 
         conn.close()
-        return render_template('result.html', subject_results=subject_results, cgpa=cgpa)
+        return render_template('result.html', grouped_results=grouped_results)
         
     except Exception as e:
         import traceback

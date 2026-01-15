@@ -552,24 +552,28 @@ tbody tr:last-child td {
 .flash-card {
     padding: 1.2rem 1.75rem;
     border-radius: 14px;
-    background: rgba(15, 23, 42, 0.95);
-    border-left: 4px solid var(--primary);
+    background: rgba(255, 255, 255, 0.9);
+    border-left: 5px solid var(--primary);
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    box-shadow: var(--shadow-lg);
+    gap: 15px;
+    color: var(--text-main);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     backdrop-filter: blur(20px);
+    max-width: 450px;
+    border: 1px solid var(--glass-border);
 }
 
 .flash-card.success {
     border-left-color: var(--success);
-    box-shadow: 0 4px 20px var(--success-glow);
+    background: rgba(240, 253, 244, 0.95);
 }
 
 .flash-card.error {
     border-left-color: var(--danger);
-    box-shadow: 0 4px 20px var(--danger-glow);
+    background: rgba(254, 242, 242, 0.95);
 }
 
 .flash-card i {

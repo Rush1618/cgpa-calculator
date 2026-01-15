@@ -69,13 +69,13 @@
 
 <!-- Add/Edit Preset Modal -->
 <div id="presetModal"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.6); z-index: 1000; backdrop-filter: blur(8px);">
     <div class="glass"
-        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px;">
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px; box-shadow: var(--shadow-xl); border: 1px solid var(--glass-border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 id="modalTitle" style="margin: 0; font-size: 1.5rem;">Add New Preset</h2>
+            <h2 id="modalTitle" style="margin: 0; font-size: 1.5rem; color: var(--text-main);">Add New Preset</h2>
             <button onclick="closeModal()"
-                style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
 
         <form id="presetForm" method="post">
@@ -109,13 +109,13 @@
 
 <!-- Backup/Restore Modal -->
 <div id="backupModal"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.6); z-index: 1000; backdrop-filter: blur(8px);">
     <div class="glass"
-        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px;">
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px; box-shadow: var(--shadow-xl); border: 1px solid var(--glass-border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 style="margin: 0; font-size: 1.5rem;">Database Management</h2>
+            <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-main);">Database Management</h2>
             <button onclick="document.getElementById('backupModal').style.display='none'"
-                style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
         </div>
 
         <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--glass-border);">

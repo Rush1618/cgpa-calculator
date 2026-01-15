@@ -4,64 +4,71 @@
 
 {% block content %}
 <div style="padding-top: 2rem; max-width: 900px; margin: 0 auto;">
-
-    <div style="text-align: center; margin-bottom: 3rem;">
-        <h1>Exam Results</h1>
-        {% if cgpa %}
-        <div class="glass"
-            style="display: inline-block; padding: 1rem 3rem; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
-            <span style="display: block; font-size: 1rem; color: var(--text-muted); margin-bottom: 0.5rem;">CUMULATIVE
-                GPA</span>
-            <span style="font-size: 3rem; font-weight: 700; color: var(--success);">{{ "%.2f"|format(cgpa[0]) }}</span>
-        </div>
-        {% endif %}
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1 style="color: var(--text-main);">Academic Performance</h1>
+        <p style="color: var(--text-muted);">Your semester-wise grade breakdown</p>
     </div>
 
-    {% if subject_results %}
-    <div class="glass table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Subject</th>
-                    <th>Obtained</th>
-                    <th>Max</th>
-                    <th>Percentage</th>
-                    <th>Grade</th>
-                    <th>Points</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for result in subject_results %}
-                <tr>
-                    <td style="font-weight: 500; color: var(--text-main);">{{ result[0] }}</td>
-                    <td>{{ result[1] }}</td>
-                    <td>{{ result[2] }}</td>
-                    <td>{{ "%.2f"|format(result[3]) }}%</td>
-                    <td>
-                        <span style="
-                            padding: 0.2rem 0.6rem; 
-                            border-radius: 4px; 
-                            font-size: 0.85rem; 
-                            font-weight: 600;
-                            background: {% if result[4] == 'F' %}rgba(239, 68, 68, 0.2); color: var(--danger);{% else %}rgba(16, 185, 129, 0.2); color: var(--success);{% endif %}
-                        ">
-                            {{ result[4] }}
-                        </span>
-                    </td>
-                    <td>{{ result[5] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% if not grouped_results %}
+    <div class="glass card" style="text-align: center; padding: 3rem;">
+        <i class="fas fa-chart-bar" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+        <h3>No Results Yet</h3>
+        <p style="margin-bottom: 2rem;">Calculate your first GPA to see it here!</p>
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">Calculate Now</a>
     </div>
     {% else %}
-    <div class="glass card" style="text-align: center; padding: 4rem;">
-        <i class="fas fa-clipboard-list" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-        <h3>No Results Yet</h3>
-        <p style="color: var(--text-muted);">Complete your subject marks entry to see results here.</p>
-        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary" style="margin-top: 1rem;">Go to
-            Dashboard</a>
+
+    {% for preset_id, data in grouped_results.items() %}
+    <div class="glass card" style="margin-bottom: 2rem; position: relative; overflow: hidden;">
+        <div
+            style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h2 style="margin: 0; color: var(--primary);">{{ data.course }}</h2>
+                <p style="margin: 0; color: var(--text-muted);">{{ data.year }} Year &bull; Semester {{ data.semester }}
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.9rem; color: var(--text-dim); display: block;">SGPA</span>
+                <span style="font-size: 2.5rem; font-weight: 700; color: var(--success); line-height: 1;">{{ data.sgpa
+                    }}</span>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--glass-border); text-align: left;">
+                        <th style="padding: 1rem; color: var(--text-muted);">Subject</th>
+                        <th style="padding: 1rem; color: var(--text-muted);">Marks</th>
+                        <th style="padding: 1rem; color: var(--text-muted);">Percentage</th>
+                        <th style="padding: 1rem; color: var(--text-muted);">Grade</th>
+                        <th style="padding: 1rem; color: var(--text-muted);">Credits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in data.subjects %}
+                    <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+                        <td style="padding: 1rem; font-weight: 500;">{{ subject.name }}</td>
+                        <td style="padding: 1rem;">{{ subject.obtained }} / {{ subject.max }}</td>
+                        <td style="padding: 1rem;">{{ "%.2f"|format(subject.percentage) }}%</td>
+                        <td style="padding: 1rem;">
+                            <span class="grade-badge {{ subject.grade[0] }}">{{ subject.grade }}</span>
+                        </td>
+                        <td style="padding: 1rem;">{{ subject.credits }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+    {% endfor %}
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Calculate Another Semester
+        </a>
+    </div>
+
     {% endif %}
 
 </div>
