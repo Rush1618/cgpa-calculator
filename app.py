@@ -345,24 +345,31 @@ def student_dashboard():
             )
 
         elif action == 'calculate_cgpa':
-            user_email = session['user']['email']
-            cursor.execute("SELECT id FROM users WHERE email=?", (user_email,))
-            user_id = cursor.fetchone()[0]
-
-            subject_ids = request.form.getlist('subjects')
-            
-            if not subject_ids:
-                 flash("No subjects selected/found.", "error")
-                 return redirect(url_for('student_dashboard'))
-
-            total_credits = 0
-            total_weighted_points = 0
-            
             try:
+                user_email = session['user']['email']
+                cursor.execute("SELECT id FROM users WHERE email=?", (user_email,))
+                user_result = cursor.fetchone()
+                
+                if not user_result:
+                    flash("User not found. Please log in again.", "error")
+                    return redirect(url_for('login'))
+                
+                user_id = user_result[0]
+
+                subject_ids = request.form.getlist('subjects')
+                
+                if not subject_ids:
+                     flash("No subjects selected/found.", "error")
+                     return redirect(url_for('student_dashboard'))
+
+                total_credits = 0
+                total_weighted_points = 0
+                
                 for subject_id in subject_ids:
                     cursor.execute("SELECT credits FROM subjects WHERE id=?", (subject_id,))
                     res_credits = cursor.fetchone()
-                    if not res_credits: continue # Skip if bad subject ID
+                    if not res_credits: 
+                        continue # Skip if bad subject ID
                     credits = res_credits[0]
 
                     cursor.execute("SELECT id, max_marks FROM components WHERE subject_id=?", (subject_id,))
@@ -373,8 +380,13 @@ def student_dashboard():
 
                     for comp_id, max_marks in components:
                         marks_str = request.form.get(f'marks_{comp_id}', '0')
-                        if not marks_str.isdigit(): marks_str = '0'
-                        marks = int(marks_str)
+                        # Handle empty strings and non-numeric input
+                        if not marks_str or not marks_str.strip():
+                            marks_str = '0'
+                        marks_str = marks_str.strip()
+                        if not marks_str.replace('.', '', 1).isdigit():
+                            marks_str = '0'
+                        marks = float(marks_str)
                         
                         total_obtained += marks
                         total_max += max_marks
@@ -417,15 +429,21 @@ def student_dashboard():
                 )
 
                 conn.commit()
-            except Exception as e:
-                print(f"Error calculating CGPA: {e}")
-                conn.rollback()
-                flash("An error occurred during calculation. Please check your inputs.", "error")
-                return redirect(url_for('student_dashboard'))
+                conn.close()
                 
-            conn.close()
-
-            return redirect(url_for('view_result'))
+                flash("CGPA calculated successfully!", "success")
+                return redirect(url_for('view_result'))
+                
+            except Exception as e:
+                import traceback
+                error_details = traceback.format_exc()
+                print(f"Error calculating CGPA: {e}")
+                print(f"Full traceback:\n{error_details}")
+                if 'conn' in locals():
+                    conn.rollback()
+                    conn.close()
+                flash(f"An error occurred during calculation: {str(e)}", "error")
+                return redirect(url_for('student_dashboard'))
 
     # GET request: Fetch options for dropdowns
     cursor.execute("SELECT DISTINCT academic_year FROM presets")
