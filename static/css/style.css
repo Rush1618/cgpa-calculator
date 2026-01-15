@@ -1,40 +1,53 @@
 :root {
-    /* Enhanced Color Palette */
-    --primary: #6366f1;
-    --primary-dark: #4f46e5;
-    --primary-light: #818cf8;
-    --primary-glow: rgba(99, 102, 241, 0.5);
+    /* Modern Professional Color Palette */
+    /* Primary - Deep Blue */
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --primary-light: #60a5fa;
+    --primary-glow: rgba(59, 130, 246, 0.4);
 
-    --secondary: #ec4899;
-    --secondary-dark: #db2777;
-    --secondary-glow: rgba(236, 72, 153, 0.5);
+    /* Secondary - Vibrant Purple */
+    --secondary: #a855f7;
+    --secondary-dark: #9333ea;
+    --secondary-light: #c084fc;
+    --secondary-glow: rgba(168, 85, 247, 0.4);
 
-    --accent: #8b5cf6;
-    --accent-glow: rgba(139, 92, 246, 0.4);
+    /* Accent - Warm Coral */
+    --accent: #f97316;
+    --accent-light: #fb923c;
+    --accent-glow: rgba(249, 115, 22, 0.4);
 
-    --bg-dark: #0a0e1a;
-    --bg-darker: #050810;
-    --glass-bg: rgba(255, 255, 255, 0.06);
-    --glass-border: rgba(255, 255, 255, 0.12);
+    /* Backgrounds - Deep Navy */
+    --bg-dark: #0f172a;
+    --bg-darker: #020617;
+    --bg-card: #1e293b;
 
-    --text-main: #f8fafc;
+    /* Glass Effects */
+    --glass-bg: rgba(30, 41, 59, 0.4);
+    --glass-border: rgba(148, 163, 184, 0.1);
+    --glass-hover: rgba(30, 41, 59, 0.6);
+
+    /* Text Colors */
+    --text-main: #f1f5f9;
     --text-light: #e2e8f0;
     --text-muted: #94a3b8;
     --text-dim: #64748b;
 
-    --success: #10b981;
-    --success-glow: rgba(16, 185, 129, 0.4);
+    /* Status Colors */
+    --success: #22c55e;
+    --success-glow: rgba(34, 197, 94, 0.3);
     --danger: #ef4444;
-    --danger-glow: rgba(239, 68, 68, 0.4);
+    --danger-glow: rgba(239, 68, 68, 0.3);
     --warning: #f59e0b;
-    --warning-glow: rgba(245, 158, 11, 0.4);
-    --info: #3b82f6;
+    --warning-glow: rgba(245, 158, 11, 0.3);
+    --info: #06b6d4;
 
-    /* Shadows */
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.15);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.2);
-    --shadow-xl: 0 12px 48px rgba(0, 0, 0, 0.3);
+    /* Shadows - Enhanced for depth */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15), 0 10px 10px rgba(0, 0, 0, 0.04);
+    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
 }
 
 * {
@@ -45,7 +58,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+    background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 50%, #1a1f35 100%);
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
@@ -68,8 +81,8 @@ body {
 .orb {
     position: absolute;
     border-radius: 50%;
-    filter: blur(100px);
-    opacity: 0.5;
+    filter: blur(120px);
+    opacity: 0.4;
     animation: float 25s infinite ease-in-out;
     will-change: transform;
 }
@@ -133,8 +146,8 @@ body {
 }
 
 .glass:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.18);
+    background: var(--glass-hover);
+    border-color: rgba(148, 163, 184, 0.2);
     box-shadow: var(--shadow-lg);
 }
 
@@ -146,10 +159,10 @@ body {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(10, 14, 26, 0.85);
+    background: rgba(15, 23, 42, 0.9);
     backdrop-filter: blur(20px) saturate(180%);
     border-bottom: 1px solid var(--glass-border);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
 
 /* Enhanced Typography */
@@ -169,7 +182,7 @@ h1 {
     font-size: 2.75rem;
     text-align: center;
     margin: 2.5rem 0;
-    background: linear-gradient(135deg, #a78bfa 0%, #f472b6 50%, #fb923c 100%);
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 50%, var(--accent) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -261,7 +274,7 @@ a {
 
 .nav-item:hover,
 .nav-item.active {
-    background: rgba(99, 102, 241, 0.1);
+    background: rgba(59, 130, 246, 0.1);
     color: var(--text-light);
     transform: translateY(-2px);
 }
@@ -375,7 +388,7 @@ a {
 }
 
 .btn-icon:hover {
-    background: rgba(99, 102, 241, 0.15);
+    background: rgba(59, 130, 246, 0.15);
     color: var(--primary);
     border-color: var(--primary);
     transform: translateY(-2px);
@@ -413,6 +426,9 @@ textarea {
     font-size: 1rem;
     transition: all 0.3s ease;
     font-family: inherit;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
 }
 
 input:focus,
@@ -422,6 +438,7 @@ textarea:focus {
     border-color: var(--primary);
     background: rgba(0, 0, 0, 0.4);
     box-shadow: 0 0 0 3px var(--primary-glow);
+    z-index: 2;
 }
 
 input::placeholder,
@@ -467,7 +484,7 @@ tr {
 }
 
 tr:hover {
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(59, 130, 246, 0.05);
 }
 
 tbody tr:last-child td {
@@ -501,7 +518,7 @@ tbody tr:last-child td {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, transparent 100%);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -512,8 +529,8 @@ tbody tr:last-child td {
 
 .card:hover {
     transform: translateY(-8px);
-    border-color: rgba(255, 255, 255, 0.25);
-    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2);
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
 }
 
 /* Enhanced Flash Messages */
@@ -531,7 +548,7 @@ tbody tr:last-child td {
 .flash-card {
     padding: 1.2rem 1.75rem;
     border-radius: 14px;
-    background: rgba(10, 14, 26, 0.95);
+    background: rgba(15, 23, 42, 0.95);
     border-left: 4px solid var(--primary);
     display: flex;
     align-items: center;
