@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Result Detail{% endblock %}
+
+{% block content %}
+<div style="padding-top: 2rem; max-width: 900px; margin: 0 auto;">
+    <div class="dashboard-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1
+                style="margin: 0; text-align: left; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main);">
+                {{ student[1] }}</h1>
+            <p style="color: var(--text-muted); margin: 0;">{{ student[2] }} &bull; {{ student[3] }}</p>
+        </div>
+        <div class="actions" style="display: flex; gap: 1rem;">
+            <a href="{{ url_for('download_student_csv', user_id=student[0]) }}" class="btn btn-primary"
+                style="background: var(--success); border-color: var(--success);">
+                <i class="fas fa-file-csv"></i> Download CSV
+            </a>
+            <a href="{{ url_for('view_students') }}" class="btn btn-primary" style="background: rgba(255,255,255,0.1);">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- CGPA Card -->
+    <div class="glass card" style="text-align: center; margin-bottom: 2rem; border: 1px solid var(--primary);">
+        <h2 style="font-size: 3rem; margin: 0; color: var(--primary);">{{ "%.2f"|format(cgpa) }}</h2>
+        <p style="text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted);">SGPA / CGPA</p>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for subject in subject_results %}
+        <div class="glass card">
+            <div
+                style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;">
+                <div>
+                    <h3 style="margin: 0; color: var(--text-light);">{{ subject[0] }}</h3>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">{{ subject[1] }} &bull; Credits: {{
+                        subject[2] }}</span>
+                </div>
+                <div style="text-align: right;">
+                    <div class="{% if subject[6] == 'F' %}text-danger{% else %}text-success{% endif %}"
+                        style="font-size: 1.5rem; font-weight: bold;">
+                        {{ subject[6] }}
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">Grade Point: {{ subject[7] }}</div>
+                </div>
+            </div>
+
+            <!-- Detailed Components Table -->
+            <table class="glass-table" style="margin-bottom: 0;">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Obtained</th>
+                        <th>Max Marks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comp in detailed_marks[subject[8]] %}
+                    <tr>
+                        <td>{{ comp[0] }}</td>
+                        <td>{{ comp[1] }}</td>
+                        <td>{{ comp[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="font-weight: bold; background: rgba(255,255,255,0.05);">
+                        <td>Total</td>
+                        <td>{{ subject[3] }}</td>
+                        <td>{{ subject[4] }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="glass card" style="text-align: center; padding: 3rem;">
+            <p>No results calculated for this student yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

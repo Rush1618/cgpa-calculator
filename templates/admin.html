@@ -4,11 +4,20 @@
 
 {% block content %}
 <div style="padding-top: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>Admin Dashboard</h1>
-        <button class="btn btn-primary" onclick="openAddModal()">
-            <i class="fas fa-plus"></i> New Preset
-        </button>
+    <div class="dashboard-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1
+            style="margin: 0; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main); text-align: left;">
+            Admin Dashboard</h1>
+        <div class="actions" style="display: flex; gap: 1rem;">
+            <button class="btn btn-primary" onclick="document.getElementById('backupModal').style.display='block'"
+                style="background: var(--warning); border-color: var(--warning);">
+                <i class="fas fa-database"></i> Backup/Restore
+            </button>
+            <button class="btn btn-primary" onclick="openAddModal()">
+                <i class="fas fa-plus"></i> New Preset
+            </button>
+        </div>
     </div>
 
     <div class="grid">
@@ -28,13 +37,18 @@
                     <i class="fas fa-book"></i> Subjects
                 </a>
                 <div style="display: flex; gap: 0.5rem;">
+                    <!-- Pass data via attributes to avoid JS Syntax Errors -->
                     <button class="btn btn-primary" style="flex: 1; font-size: 0.8rem; background: var(--secondary);"
-                        onclick='openDuplicateModal({{ preset|tojson }})'>
+                        onclick="openDuplicateModal(this)" data-id="{{ preset[0] }}"
+                        data-academic-year="{{ preset[1] }}" data-course="{{ preset[2] }}" data-year="{{ preset[3] }}"
+                        data-division="{{ preset[4] }}" data-semester="{{ preset[5] }}">
                         <i class="fas fa-copy"></i> Clone
                     </button>
                     <button class="btn btn-primary"
                         style="flex: 1; font-size: 0.8rem; background: rgba(255,255,255,0.1);"
-                        onclick='openEditModal({{ preset|tojson }})'>
+                        onclick="openEditModal(this)" data-id="{{ preset[0] }}" data-academic-year="{{ preset[1] }}"
+                        data-course="{{ preset[2] }}" data-year="{{ preset[3] }}" data-division="{{ preset[4] }}"
+                        data-semester="{{ preset[5] }}">
                         <i class="fas fa-edit"></i> Edit
                     </button>
                 </div>
@@ -90,6 +104,42 @@
     </div>
 </div>
 
+<!-- Backup/Restore Modal -->
+<div id="backupModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(5px);">
+    <div class="glass"
+        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; font-size: 1.5rem;">Database Management</h2>
+            <button onclick="document.getElementById('backupModal').style.display='none'"
+                style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        </div>
+
+        <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--glass-border);">
+            <h3>Backup</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Download a copy of the current
+                database.</p>
+            <a href="{{ url_for('download_db') }}" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-download"></i> Download Database
+            </a>
+        </div>
+
+        <div>
+            <h3>Restore</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Upload a database file to
+                replace the current one. <span style="color: var(--danger);">Warning: This overwrites current
+                    data!</span></p>
+            <form action="{{ url_for('upload_db') }}" method="post" enctype="multipart/form-data">
+                <input type="file" name="db_file" accept=".db" required style="margin-bottom: 1rem;">
+                <button type="submit" class="btn btn-danger" style="width: 100%;"
+                    onclick="return confirm('Are you sure you want to overwrite the database? This cannot be undone.');">
+                    <i class="fas fa-upload"></i> Restore Database
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     function openAddModal() {
         document.getElementById('modalTitle').innerText = 'Add New Preset';
@@ -105,34 +155,36 @@
         document.getElementById('presetModal').style.display = 'block';
     }
 
-    function openEditModal(preset) {
+    function openEditModal(btn) {
         document.getElementById('modalTitle').innerText = 'Edit Preset';
-        // Dynamically build the URL for editing
-        var url = "{{ url_for('edit_preset', preset_id=0) }}".replace('0', preset[0]);
+        const id = btn.dataset.id;
+        var url = "{{ url_for('edit_preset', preset_id=0) }}".replace('0', id);
+
         document.getElementById('presetForm').action = url;
         document.getElementById('modalSubmitBtn').innerText = 'Update Preset';
 
-        document.getElementById('academic_year').value = preset[1];
-        document.getElementById('course').value = preset[2];
-        document.getElementById('year').value = preset[3];
-        document.getElementById('division').value = preset[4];
-        document.getElementById('semester').value = preset[5];
+        document.getElementById('academic_year').value = btn.dataset.academicYear;
+        document.getElementById('course').value = btn.dataset.course;
+        document.getElementById('year').value = btn.dataset.year;
+        document.getElementById('division').value = btn.dataset.division;
+        document.getElementById('semester').value = btn.dataset.semester;
 
         document.getElementById('presetModal').style.display = 'block';
     }
 
-    function openDuplicateModal(preset) {
+    function openDuplicateModal(btn) {
         document.getElementById('modalTitle').innerText = 'Duplicate Preset (Deep Copy)';
-        // Dynamically build the URL for duplicating
-        var url = "{{ url_for('duplicate_preset', preset_id=0) }}".replace('0', preset[0]);
+        const id = btn.dataset.id;
+        var url = "{{ url_for('duplicate_preset', preset_id=0) }}".replace('0', id);
+
         document.getElementById('presetForm').action = url;
         document.getElementById('modalSubmitBtn').innerText = 'Clone & Copy Subjects';
 
-        document.getElementById('academic_year').value = preset[1];
-        document.getElementById('course').value = preset[2];
-        document.getElementById('year').value = preset[3];
-        document.getElementById('division').value = ''; // Clear division to force user to check
-        document.getElementById('semester').value = preset[5];
+        document.getElementById('academic_year').value = btn.dataset.academicYear;
+        document.getElementById('course').value = btn.dataset.course;
+        document.getElementById('year').value = btn.dataset.year;
+        document.getElementById('division').value = '';
+        document.getElementById('semester').value = btn.dataset.semester;
 
         document.getElementById('presetModal').style.display = 'block';
     }

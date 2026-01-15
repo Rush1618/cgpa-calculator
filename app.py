@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for, render_template, session, request, flash
+from flask import Flask, redirect, url_for, render_template, session, request, flash, send_file
 from authlib.integrations.flask_client import OAuth
 import os
 from datetime import datetime
@@ -125,6 +125,44 @@ def additional_info():
         return redirect('/')
 
     return render_template('additional_info.html')
+
+
+@app.route('/admin/db/download')
+def download_db():
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+    
+    try:
+        return send_file('database.db', as_attachment=True)
+    except Exception as e:
+        flash(f"Error downloading database: {str(e)}", "error")
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/db/upload', methods=['POST'])
+def upload_db():
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+    
+    if 'db_file' not in request.files:
+        flash('No file part', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
+    file = request.files['db_file']
+    
+    if file.filename == '':
+        flash('No selected file', 'error')
+        return redirect(url_for('admin_dashboard'))
+    
+    if file:
+        try:
+            # Save the file, overwriting the existing database.db
+            # Warning: This is a destructive operation!
+            file.save('database.db')
+            flash('Database restored successfully! Please refresh or restart if needed.', 'success')
+        except Exception as e:
+            flash(f"Error restoring database: {str(e)}", "error")
+            
+    return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/admin/presets/edit/<int:preset_id>', methods=['POST'])
@@ -594,6 +632,131 @@ def delete_student_record(user_id):
 
     flash("Student deleted!", "success")
     return redirect(url_for('view_students'))
+
+
+@app.route('/admin/students/<int:user_id>/marks')
+def view_student_marks(user_id):
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Get student info
+    cursor.execute("SELECT * FROM users WHERE id=?", (user_id,))
+    student = cursor.fetchone()
+
+    # Get Subject Results (Overview)
+    cursor.execute("""
+        SELECT s.name, s.code, s.credits, sr.total_obtained, sr.total_max, sr.percentage, sr.grade, sr.grade_point, s.id
+        FROM subject_results sr
+        JOIN subjects s ON sr.subject_id = s.id
+        WHERE sr.user_id = ?
+    """, (user_id,))
+    subject_results = cursor.fetchall()
+
+    # Get Detailed Component Marks
+    detailed_marks = {}
+    for res in subject_results:
+        subject_id = res[8] # the s.id selected at the end
+        cursor.execute("""
+            SELECT c.name, sm.marks_obtained, c.max_marks
+            FROM student_marks sm
+            JOIN components c ON sm.component_id = c.id
+            WHERE sm.user_id = ? AND c.subject_id = ?
+        """, (user_id, subject_id))
+        detailed_marks[subject_id] = cursor.fetchall()
+
+    # Get Final CGPA
+    cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+    cgpa_data = cursor.fetchone()
+    cgpa = cgpa_data[0] if cgpa_data else 0
+
+    conn.close()
+
+    return render_template(
+        'admin_student_results.html',
+        student=student,
+        subject_results=subject_results,
+        detailed_marks=detailed_marks,
+        cgpa=cgpa
+    )
+
+
+@app.route('/admin/students/<int:user_id>/download_csv')
+def download_student_csv(user_id):
+    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+        return redirect(url_for('index'))
+
+    import csv
+    import io
+
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Get student info
+    cursor.execute("SELECT name, roll_number, email FROM users WHERE id=?", (user_id,))
+    student = cursor.fetchone()
+    student_name = student[0]
+
+    # Get Marks Data
+    cursor.execute("""
+        SELECT s.name, s.code, c.name, sm.marks_obtained, c.max_marks
+        FROM student_marks sm
+        JOIN components c ON sm.component_id = c.id
+        JOIN subjects s ON c.subject_id = s.id
+        WHERE sm.user_id = ?
+        ORDER BY s.name, c.name
+    """, (user_id,))
+    marks_data = cursor.fetchall()
+    
+    # Get Result Data
+    cursor.execute("""
+        SELECT s.name, sr.percentage, sr.grade, sr.grade_point
+        FROM subject_results sr
+        JOIN subjects s ON sr.subject_id = s.id
+        WHERE sr.user_id = ?
+    """, (user_id,))
+    results_data = cursor.fetchall()
+    
+    cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+    cgpa_row = cursor.fetchone()
+    cgpa = cgpa_row[0] if cgpa_row else "N/A"
+
+    conn.close()
+
+    # Generate CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(['Student Report'])
+    writer.writerow(['Name', student[0]])
+    writer.writerow(['Roll Number', student[1]])
+    writer.writerow(['Email', student[2]])
+    writer.writerow(['SGPA/CGPA', cgpa])
+    writer.writerow([])
+    
+    writer.writerow(['--- Detailed Component Marks ---'])
+    writer.writerow(['Subject', 'Code', 'Component', 'Obtained', 'Max'])
+    for row in marks_data:
+        writer.writerow(row)
+    
+    writer.writerow([])
+    writer.writerow(['--- Subject Grades ---'])
+    writer.writerow(['Subject', 'Percentage', 'Grade', 'Grade Point'])
+    for row in results_data:
+        writer.writerow(row)
+
+    output.seek(0)
+    
+    # Using 'send_file' with BytesIO would be better but StringIO works if we encode
+    # Alternatively send_file expects bytes usually or a path. 
+    # Let's use make_response to just send the string as csv
+    from flask import make_response
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = f"attachment; filename=result_{student_name}.csv"
+    response.headers["Content-type"] = "text/csv"
+    return response
 
 
 @app.route('/download_pdf')
