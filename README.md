@@ -1,112 +1,58 @@
-# CGPA Calculator System
+# CGPA Pro System
 
-This is a single-folder monolithic web application for a college CGPA system.
+A premium, glassmorphism-styled CGPA Calculator with robust Admin management, Google Authentication, and Student features.
 
 ## Features
+- **Strict Authentication**: Google Login restricted to `@tsecmumbai.in` domains.
+- **Admin Dashboard**: Manage class presets, subjects, grading rules, and promote students.
+- **Student Dashboard**: View tailored subjects, enter marks, and see detailed result breakdowns.
+- **Smart Filtering**: Automatically filters classes based on your current year (FE/SE/TE/BE).
+- **Data Integrity**: Prevents duplicate records and maintains consistent student profiles.
+- **Developer Mode**: Built-in bypass for testing without Google Credentials.
 
-- Google OAuth for authentication
-- Admin and Student roles
-- Preset system for subjects and components
-- CGPA calculation
-- PDF export of results (to be implemented)
-- Grading rule management
-- Student record management
+## Setup Instructions
 
-## Project Structure
+### 1. Prerequisites
+- Python 3.8+
+- SQLite3
 
-```
-cgpa_system/
-│
-├── app.py
-├── database.db
-├── database.py
-├── requirements.txt
-├── templates/
-│   ├── login.html
-│   ├── student.html
-│   ├── admin.html
-│   ├── result.html
-│   ├── additional_info.html
-│   ├── edit_preset.html
-│   ├── manage_subjects.html
-│   ├── edit_subject.html
-│   ├── view_students.html
-│   ├── edit_student_record.html
-│   └── manage_grading_rules.html
-│
-└── static/
-    ├── css/
-    │   └── style.css
-    ├── js/
-    └── images/
-        └── google-login-button.png
+### 2. Installation
+```bash
+# Clone the repository
+git clone <your-repo-url>
+cd cgpa_system
+
+# Install dependencies
+pip install flask authlib requests python-dotenv
 ```
 
-## Setup
+### 3. Configuration (.env)
+Create a `.env` file in the root directory:
+```ini
+FLASK_SECRET_KEY=your_super_secret_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+# Optional: Enable Developer Mode (Bbypass Login)
+DEV_MODE=true
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-username/cgpa-calculator.git
-   ```
-2. **Install the dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-3. **Set up Google OAuth:**
-    - Go to the [Google API Console](https://console.developers.google.com/).
-    - Create a new project.
-    - Go to **Credentials** and create an **OAuth client ID**.
-    - Select **Web application** as the application type.
-    - Add `http://127.0.0.1:5000/authorize` to the **Authorized redirect URIs**.
-    - Copy the **Client ID** and **Client Secret**.
-    - Open `app.py` and replace `YOUR_GOOGLE_CLIENT_ID` and `YOUR_GOOGLE_CLIENT_SECRET` with your actual credentials.
-4. **Run the database script:**
-    ```bash
-    python database.py
-    ```
-5. **Run the application:**
-    ```bash
-    python app.py
-    ```
-6. **Open your browser and go to `http://127.0.0.1:5000`**
+### 4. Database Initialization
+The application automatically creates `database.db` on first run.
+To migrate an old database:
+```bash
+python migration_tools/migrate_database.py old_backup.db
+```
 
-## Admin
+### 5. Running the App
+```bash
+python app.py
+```
+Access the app at `http://127.0.0.1:5000`.
 
-The admin is identified by the email `singh02.rushabh@gmail.com`. If you log in with this email, you will be redirected to the admin dashboard.
+## Developer Mode
+- Set `DEV_MODE=true` in `.env`.
+- Go to `/dev_login` to log in as Admin or Student without Google Auth.
+- A red "DEV" badge will appear in the navigation bar.
 
-The admin can:
-- Create, edit, and delete presets.
-- Manage subjects and components for each preset.
-- View all students and their records.
-- Edit and delete student records.
-- Manage the grading rules.
-
-## Student
-
-Any other user who logs in will be a student. After the first login, the user will be asked to provide their name and roll number.
-
-The student can:
-- Select their academic details.
-- Load the subjects for the selected preset.
-- Enter their marks for each component.
-- Calculate their CGPA.
-- View their result.
-- Download their result as a PDF (to be implemented).
-
-## PDF Download
-
-The PDF download functionality is not yet implemented. It will be added in a future version.
-
-## Grading Rule Management
-
-The admin can manage the grading rules from the admin dashboard. The default grading rules are:
-
-| % Range | Grade | Grade Point |
-|---|---|---|
-| 90–100 | O | 10 |
-| 80–89 | A+ | 9 |
-| 70–79 | A | 8 |
-| 60–69 | B+ | 7 |
-| 50–59 | B | 6 |
-| 40–49 | C | 5 |
-| 0–39 | F | 0 |
+## Admin Credentials
+- Default Admin Email: `singh02.rushabh@gmail.com` (Change `ADMIN_EMAIL` in `app.py` if needed).

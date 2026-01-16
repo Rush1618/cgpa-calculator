@@ -13,10 +13,53 @@
                 <label>Full Name</label>
                 <input type="text" name="name" value="{{ session.get('user', {}).get('name', '') }}" required>
             </div>
-            <div class="form-group" style="text-align: left;">
-                <label>Roll Number / PRN</label>
-                <input type="text" name="roll_number" required>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group" style="text-align: left;">
+                    <label>Roll Number</label>
+                    <input type="text" name="roll_number" required>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Enrollment Number</label>
+                    <input type="text" name="enrollment_number" required>
+                </div>
+
             </div>
+
+            <div class="form-group" style="text-align: left;">
+                <label>Department</label>
+                <select name="department" required>
+                    <option value="" disabled selected>Select Department</option>
+                    <option value="Computer Engineering">Computer Engineering (CO)</option>
+                    <option value="AI & ML">AI & ML (AIML)</option>
+                    <option value="Electronics & Computer Science">Electronics & Computer Science (ECS)</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Information Technology">Information Technology (IT)</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group" style="text-align: left;">
+                    <label>Academic Year</label>
+                    <select name="academic_year" required>
+                        <option value="" disabled selected>Select Year</option>
+                        <option value="2023-2024">2023-2024</option>
+                        <option value="2024-2025">2024-2025</option>
+                        <option value="2025-2026">2025-2026</option>
+                    </select>
+                </div>
+                <div class="form-group" style="text-align: left;">
+                    <label>Current Year</label>
+                    <select name="current_year" required>
+                        <option value="" disabled selected>Select Year</option>
+                        <option value="FE">FE (First Year)</option>
+                        <option value="SE">SE (Second Year)</option>
+                        <option value="TE">TE (Third Year)</option>
+                        <option value="BE">BE (Final Year)</option>
+                    </select>
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save &
                 Continue</button>
         </form>

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Promote Students{% endblock %}
+{% block content %}
+<div class="glass card" style="max-width: 600px; margin: 3rem auto; padding: 2.5rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="color: var(--primary); margin-bottom: 0.5rem;">Promote Students</h2>
+        <p style="color: var(--text-muted);">Advance all students of a specific year to the next level.</p>
+    </div>
+
+    <div style="display: grid; gap: 1.5rem;">
+        <!-- FE -> SE -->
+        <form method="post">
+            <input type="hidden" name="from_year" value="FE">
+            <input type="hidden" name="to_year" value="SE">
+            <button type="submit" class="btn btn-primary"
+                style="width: 100%; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.2)); border: 1px solid var(--primary-glow);"
+                onclick="return confirm('Are you sure you want to promote ALL First Year (FE) students to Second Year (SE)? This action affects all users.')">
+                <div style="text-align: left;">
+                    <span style="display: block; font-weight: bold; font-size: 1.1rem; color: var(--text-main);">Promote
+                        to Second Year</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">First Year (FE) &rarr; Second Year
+                        (SE)</span>
+                </div>
+                <i class="fas fa-chevron-right" style="color: var(--primary);"></i>
+            </button>
+        </form>
+
+        <!-- SE -> TE -->
+        <form method="post">
+            <input type="hidden" name="from_year" value="SE">
+            <input type="hidden" name="to_year" value="TE">
+            <button type="submit" class="btn btn-primary"
+                style="width: 100%; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(16, 185, 129, 0.4);"
+                onclick="return confirm('Promote ALL Second Year (SE) students to Third Year (TE)?')">
+                <div style="text-align: left;">
+                    <span style="display: block; font-weight: bold; font-size: 1.1rem; color: var(--text-main);">Promote
+                        to Third Year</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Second Year (SE) &rarr; Third Year
+                        (TE)</span>
+                </div>
+                <i class="fas fa-chevron-right" style="color: var(--success);"></i>
+            </button>
+        </form>
+
+        <!-- TE -> BE -->
+        <form method="post">
+            <input type="hidden" name="from_year" value="TE">
+            <input type="hidden" name="to_year" value="BE">
+            <button type="submit" class="btn btn-primary"
+                style="width: 100%; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.2)); border: 1px solid rgba(245, 158, 11, 0.4);"
+                onclick="return confirm('Promote ALL Third Year (TE) students to Final Year (BE)?')">
+                <div style="text-align: left;">
+                    <span style="display: block; font-weight: bold; font-size: 1.1rem; color: var(--text-main);">Promote
+                        to Final Year</span>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Third Year (TE) &rarr; Final Year
+                        (BE)</span>
+                </div>
+                <i class="fas fa-chevron-right" style="color: var(--warning);"></i>
+            </button>
+        </form>
+    </div>
+
+    <div style="margin-top: 2.5rem; text-align: center;">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to
+            Dashboard</a>
+    </div>
+</div>
+{% endblock %}

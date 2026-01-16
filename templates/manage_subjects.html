@@ -36,11 +36,17 @@
                             {% endfor %}
                         </div>
                     </div>
-                    <a href="{{ url_for('delete_subject', subject_id=subject[0]) }}" class="btn btn-danger"
-                        onclick="return confirm('Are you sure? This will delete all marks associated with this subject.');"
-                        style="padding: 0.5rem;">
-                        <i class="fas fa-trash"></i>
-                    </a>
+                    <div style="display: flex;">
+                        <a href="{{ url_for('edit_subject', subject_id=subject[0], preset_id=preset[0]) }}" class="btn btn-secondary"
+                            style="padding: 0.5rem; margin-right: 0.5rem;" title="Edit Subject">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{{ url_for('delete_subject', subject_id=subject[0]) }}" class="btn btn-danger"
+                            onclick="return confirm('Are you sure? This will delete all marks associated with this subject.');"
+                            style="padding: 0.5rem;" title="Delete Subject">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
             {% else %}

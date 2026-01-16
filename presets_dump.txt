@@ -1,0 +1,1 @@
+[(1, '2025-2026', 'BE Computer Engineering', 'Computer Engineering', 'SE', 'A', '3'), (2, '2025-2026', 'BE CSE-AIML', 'AI & ML', 'SE', 'A', '3')]

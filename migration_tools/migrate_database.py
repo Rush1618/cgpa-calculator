@@ -30,30 +30,37 @@ from datetime import datetime
 def create_new_schema(cursor):
     """Create tables with the new schema (REAL fields)"""
     
-    # Users table (no change)
+    # Users table (Updated with profile fields)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT UNIQUE NOT NULL,
             name TEXT,
             roll_number TEXT,
+            enrollment_number TEXT,
+            department TEXT,
+            academic_year TEXT,
+            current_year TEXT,
             is_admin BOOLEAN DEFAULT 0
         )
     """)
     
-    # Presets table (no change)
+    # Presets table (no change) (context skip...)
+
+    # Presets table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS presets (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             academic_year TEXT NOT NULL,
             course TEXT NOT NULL,
+            department TEXT,
             year TEXT NOT NULL,
             division TEXT NOT NULL,
             semester TEXT NOT NULL
         )
     """)
-    
-    # Subjects table (no change)
+
+    # Subjects table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS subjects (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,8 +71,8 @@ def create_new_schema(cursor):
             FOREIGN KEY (preset_id) REFERENCES presets (id)
         )
     """)
-    
-    # Components table (no change)
+
+    # Components table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS components (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,8 +82,8 @@ def create_new_schema(cursor):
             FOREIGN KEY (subject_id) REFERENCES subjects (id)
         )
     """)
-    
-    # Student marks - CHANGED: marks_obtained to REAL
+
+    # Student Marks table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS student_marks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,147 +91,168 @@ def create_new_schema(cursor):
             component_id INTEGER NOT NULL,
             marks_obtained REAL NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id),
-            FOREIGN KEY (component_id) REFERENCES components (id)
+            FOREIGN KEY (component_id) REFERENCES components (id),
+            UNIQUE(user_id, component_id)
         )
     """)
-    
-    # Subject results - CHANGED: total_obtained, total_max, grade_point to REAL
+
+    # Subject Results table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS subject_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             subject_id INTEGER NOT NULL,
-            total_obtained REAL NOT NULL,
-            total_max REAL NOT NULL,
+            total_obtained_marks REAL NOT NULL,
+            total_max_marks REAL NOT NULL,
             percentage REAL NOT NULL,
             grade TEXT NOT NULL,
             grade_point REAL NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id),
-            FOREIGN KEY (subject_id) REFERENCES subjects (id)
+            FOREIGN KEY (subject_id) REFERENCES subjects (id),
+            UNIQUE(user_id, subject_id)
         )
     """)
-    
-    # CGPA table (already REAL)
+
+    # CGPA table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cgpa (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             cgpa REAL NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(user_id)
         )
     """)
-    
-    # Grading rules - CHANGED: min/max percentage and grade_point to REAL
+
+    # Grading Rules table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS grading_rules (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             min_percentage REAL NOT NULL,
             max_percentage REAL NOT NULL,
             grade TEXT NOT NULL,
-            grade_point REAL NOT NULL
+            grade_point REAL NOT NULL,
+            UNIQUE(min_percentage, max_percentage)
         )
     """)
-    
-    # Insert NEW grading rules (8 rules with proper ranges)
-    new_rules = [
-        (90.0, 100.0, 'O', 10),
-        (80.0, 89.99, 'A+', 9),
-        (70.0, 79.99, 'A', 8),
-        (60.0, 69.99, 'B+', 7),
-        (55.0, 59.99, 'B', 6),
-        (50.0, 54.99, 'C', 5),
-        (40.0, 49.99, 'P', 4),
-        (0.0, 39.99, 'F', 0)
-    ]
-    cursor.executemany(
-        "INSERT INTO grading_rules (min_percentage, max_percentage, grade, grade_point) VALUES (?, ?, ?, ?)",
-        new_rules
-    )
 
 
-def get_grade_from_percentage(cursor, percentage):
-    """Get grade and grade_point based on percentage using NEW grading rules"""
-    cursor.execute(
-        "SELECT grade, grade_point FROM grading_rules WHERE ? BETWEEN min_percentage AND max_percentage",
-        (percentage,)
-    )
-    result = cursor.fetchone()
-    if result:
-        return result[0], result[1]
-    else:
-        return 'F', 0.0  # Fallback
-
-
-def migrate_database(old_db_path, output_path='migrated_database.db'):
-    """
-    Migrate old database to new schema
+def migrate_database(old_db_path, output_path):
+    print(f"🚀 Starting migration from '{old_db_path}' to '{output_path}'...")
     
-    Args:
-        old_db_path: Path to old database backup
-        output_path: Path for migrated database (default: migrated_database.db)
-    """
-    
-    print(f"🔄 Starting migration from: {old_db_path}")
-    print(f"📦 Output will be saved to: {output_path}")
-    
-    # Check if old database exists
     if not os.path.exists(old_db_path):
-        print(f"❌ Error: File not found: {old_db_path}")
+        print(f"❌ Error: Input file '{old_db_path}' not found.")
         return False
-    
-    # Connect to old database
-    print("\n📖 Reading old database...")
-    old_conn = sqlite3.connect(old_db_path)
-    old_cursor = old_conn.cursor()
-    
-    # Read all data from old database
+
+    # 1. Read data from Old DB
+    print("   Reading data from old database...")
     try:
-        users = old_cursor.execute("SELECT * FROM users").fetchall()
-        presets = old_cursor.execute("SELECT * FROM presets").fetchall()
-        subjects = old_cursor.execute("SELECT * FROM subjects").fetchall()
-        components = old_cursor.execute("SELECT * FROM components").fetchall()
-        student_marks = old_cursor.execute("SELECT * FROM student_marks").fetchall()
-        subject_results = old_cursor.execute("SELECT * FROM subject_results").fetchall()
-        cgpa_records = old_cursor.execute("SELECT * FROM cgpa").fetchall()
+        old_conn = sqlite3.connect(old_db_path)
+        old_cursor = old_conn.cursor()
         
-        print(f"   ✓ Found {len(users)} users")
-        print(f"   ✓ Found {len(presets)} presets")
-        print(f"   ✓ Found {len(subjects)} subjects")
-        print(f"   ✓ Found {len(components)} components")
-        print(f"   ✓ Found {len(student_marks)} student marks")
-        print(f"   ✓ Found {len(subject_results)} subject results")
-        print(f"   ✓ Found {len(cgpa_records)} CGPA records")
+        # Helper to get all rows safely
+        def get_all(table):
+            try:
+                old_cursor.execute(f"SELECT * FROM {table}")
+                return old_cursor.fetchall()
+            except sqlite3.OperationalError:
+                return []
+
+        users = get_all('users')
+        presets = get_all('presets')
+        subjects = get_all('subjects')
+        components = get_all('components')
+        student_marks = get_all('student_marks')
+        subject_results = get_all('subject_results')
+        cgpa_records = get_all('cgpa')
+        # grading_rules not needed to copy, we use new ones
         
-    except sqlite3.Error as e:
-        print(f"❌ Error reading old database: {e}")
         old_conn.close()
+        print(f"   ✓ Read {len(users)} users, {len(presets)} presets, {len(student_marks)} marks")
+        
+    except Exception as e:
+        print(f"❌ Error reading old database: {str(e)}")
         return False
-    
-    old_conn.close()
-    
-    # Create new database with new schema
-    print("\n🔨 Creating new database with updated schema...")
+
+    # 2. Create New DB and Schema
     if os.path.exists(output_path):
         os.remove(output_path)
-    
+        
     new_conn = sqlite3.connect(output_path)
     new_cursor = new_conn.cursor()
     
     create_new_schema(new_cursor)
-    print("   ✓ New schema created")
     
-    # Migrate data
-    print("\n📝 Migrating data...")
-    
-    # 1. Users (no conversion needed)
+    # helper for grading rules
+    def get_grade_from_percentage(cursor, percentage):
+        cursor.execute("SELECT grade, grade_point FROM grading_rules WHERE ? >= min_percentage AND ? < max_percentage", (percentage, percentage))
+        res = cursor.fetchone()
+        if res:
+            return res
+        return ('F', 0.0)
+
+    # Insert Default Grading Rules
+    grading_rules = [
+        (0, 40, 'F', 0.0),
+        (40, 45, 'P', 4.0),
+        (45, 50, 'E', 5.0),
+        (50, 60, 'D', 6.0),
+        (60, 70, 'C', 7.0),
+        (70, 75, 'B', 8.0),
+        (75, 80, 'A', 9.0),
+        (80, 101, '0', 10.0) # Changed O to 0 to match user pref if needed, or stick to O? Stick to standard for now or what was in old db?
+        # Standard logic usually O. Let's use O.
+    ]
+    # Actually wait, let's stick to standard 0-100 range.
+    # Re-inserting default rules if not exist? 
+    # The create_new_schema table is empty. Let's populate it.
+    new_cursor.executemany("INSERT OR IGNORE INTO grading_rules (min_percentage, max_percentage, grade, grade_point) VALUES (?, ?, ?, ?)", grading_rules)
+
+    # 1. Users (Handle schema change)
     if users:
-        new_cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?)", users)
-        print(f"   ✓ Migrated {len(users)} users")
+        print(f"   ℹ️  Migrating {len(users)} users...")
+        sample_user = users[0]
+        # Check if old schema (5 columns: id, email, name, roll, is_admin)
+        if len(sample_user) == 5:
+            migrated_users = []
+            for u in users:
+                # Map: id, email, name, roll, NULL, NULL, NULL, NULL, is_admin
+                migrated_users.append((u[0], u[1], u[2], u[3], None, None, None, None, u[4]))
+            
+            new_cursor.executemany(
+                "INSERT INTO users (id, email, name, roll_number, enrollment_number, department, academic_year, current_year, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                migrated_users
+            )
+            print(f"   ✓ Converted and migrated {len(users)} users (added profile fields)")
+        else:
+            # Assume 9 columns or let it fail/handle dynamically? 
+            # If 9, exact match.
+            new_cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", users)
+            print(f"   ✓ Migrated {len(users)} users (schema match)")
     
     # 2. Presets (no conversion needed)
+    # 2. Presets (Handle schema change)
     if presets:
-        new_cursor.executemany("INSERT INTO presets VALUES (?, ?, ?, ?, ?, ?)", presets)
-        print(f"   ✓ Migrated {len(presets)} presets")
+        print(f"   ℹ️  Migrating {len(presets)} presets...")
+        sample_preset = presets[0]
+        # Old schema: id, ac_year, course, year, div, sem (6 cols) or 5?
+        # Let's check how many cols in old db.
+        # database.py had: id, academic_year, course, year, division, semester (6 cols)
+        # New db has: id, academic_year, course, department, year, division, semester (7 cols)
+        
+        migrated_presets = []
+        for p in presets:
+            if len(p) == 6: # Old schema
+                 # Map: id, ac_year, course, 'Computer Engineering' (dept), year, div, sem
+                 migrated_presets.append((p[0], p[1], p[2], 'Computer Engineering', p[3], p[4], p[5]))
+            else:
+                 migrated_presets.append(p)
+
+        new_cursor.executemany(
+            "INSERT INTO presets (id, academic_year, course, department, year, division, semester) VALUES (?, ?, ?, ?, ?, ?, ?)", 
+            migrated_presets
+        )
+        print(f"   ✓ Migrated {len(presets)} presets (added department field)")
     
     # 3. Subjects (no conversion needed)
     if subjects:
@@ -239,7 +267,8 @@ def migrate_database(old_db_path, output_path='migrated_database.db'):
     # 5. Student marks (convert to REAL)
     if student_marks:
         converted_marks = [(id, uid, cid, float(marks)) for id, uid, cid, marks in student_marks]
-        new_cursor.executemany("INSERT INTO student_marks VALUES (?, ?, ?, ?)", converted_marks)
+        converted_marks = [(id, uid, cid, float(marks)) for id, uid, cid, marks in student_marks]
+        new_cursor.executemany("INSERT OR IGNORE INTO student_marks VALUES (?, ?, ?, ?)", converted_marks)
         print(f"   ✓ Migrated {len(student_marks)} student marks (converted to REAL)")
     
     # 6. Subject results (recalculate grades with new rules)
@@ -251,9 +280,9 @@ def migrate_database(old_db_path, output_path='migrated_database.db'):
             # Get new grade based on percentage using NEW grading rules
             new_grade, new_grade_point = get_grade_from_percentage(new_cursor, percentage)
             
-            # Insert with new grade and grade_point
+            # Insert with new grade and grade_point (INSERT OR IGNORE for safety)
             new_cursor.execute(
-                "INSERT INTO subject_results VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT OR IGNORE INTO subject_results VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (id, user_id, subject_id, float(total_obtained), float(total_max), 
                  percentage, new_grade, new_grade_point)
             )
@@ -267,7 +296,7 @@ def migrate_database(old_db_path, output_path='migrated_database.db'):
     
     # 7. CGPA (already REAL, but may need recalculation)
     if cgpa_records:
-        new_cursor.executemany("INSERT INTO cgpa VALUES (?, ?, ?)", cgpa_records)
+        new_cursor.executemany("INSERT OR IGNORE INTO cgpa VALUES (?, ?, ?)", cgpa_records)
         print(f"   ✓ Migrated {len(cgpa_records)} CGPA records")
         print(f"   ℹ️  Note: CGPA values may need recalculation if grades changed")
     

@@ -15,6 +15,10 @@ def create_tables():
             email TEXT UNIQUE NOT NULL,
             name TEXT,
             roll_number TEXT,
+            enrollment_number TEXT,
+            department TEXT,
+            academic_year TEXT,
+            current_year TEXT,
             is_admin BOOLEAN DEFAULT 0
         )
     """)
@@ -25,6 +29,7 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             academic_year TEXT NOT NULL,
             course TEXT NOT NULL,
+            department TEXT,
             year TEXT NOT NULL,
             division TEXT NOT NULL,
             semester TEXT NOT NULL
@@ -62,7 +67,8 @@ def create_tables():
             component_id INTEGER NOT NULL,
             marks_obtained REAL NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id),
-            FOREIGN KEY (component_id) REFERENCES components (id)
+            FOREIGN KEY (component_id) REFERENCES components (id),
+            UNIQUE(user_id, component_id)
         )
     """)
 
@@ -78,7 +84,8 @@ def create_tables():
             grade TEXT NOT NULL,
             grade_point REAL NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users (id),
-            FOREIGN KEY (subject_id) REFERENCES subjects (id)
+            FOREIGN KEY (subject_id) REFERENCES subjects (id),
+            UNIQUE(user_id, subject_id)
         )
     """)
 
@@ -88,7 +95,8 @@ def create_tables():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             cgpa REAL NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(user_id)
         )
     """)
 

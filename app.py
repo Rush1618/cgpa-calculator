@@ -11,6 +11,7 @@ except:
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret")
+DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
 # Ensure database tables are created
 from database import create_tables
@@ -28,7 +29,7 @@ google = oauth.register(
     }
 )
 
-ADMIN_EMAIL = "singh02.rushabh@gmail.com"
+
 
 
 @app.route('/')
@@ -41,20 +42,30 @@ def index():
         user = cursor.fetchone()
         conn.close()
 
-        if user and user[2] and user[3]:
-            if user_info['email'] == ADMIN_EMAIL:
-                return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('student_dashboard'))
-        else:
-            return redirect(url_for('additional_info'))
+        admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+        if user_info['email'] in admin_emails:
+            return redirect(url_for('admin_dashboard'))
 
-    return render_template('login.html')
+        # Check if user exists and has all required fields (Name, Roll, Enrollment, Dept, Academic Year, Current Year)
+        # Indexes: 2:name, 3:roll, 4:email (skip), 5:dept, 6:ac_year, 7:current_year
+        if user and user[2] and user[3] and user[4] and user[5] and user[6] and user[7]:
+             return redirect(url_for('student_dashboard'))
+        else:
+             return redirect(url_for('additional_info'))
+
+    return render_template('login.html') 
+
+
+# ... (skipping context)
+
+
+
 
 
 @app.context_processor
+@app.context_processor
 def inject_now():
-    return {'now': datetime.utcnow()}
+    return {'now': datetime.utcnow(), 'dev_mode': DEV_MODE}
 
 @app.route('/login')
 def login():
@@ -65,31 +76,58 @@ def authorize():
     try:
         token = google.authorize_access_token()
         user_info = google.get(google.server_metadata.get('userinfo_endpoint')).json()
+        
+        # Strict Domain Check
+        email = user_info['email']
+        if not email.endswith('@tsecmumbai.in') and email != ADMIN_EMAIL:
+            # Revoke/Clear session immediately
+            session.pop('user', None)
+            return render_template('unauthorized.html')
+
         session['user'] = user_info
 
         conn = create_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = ?", (user_info['email'],))
+        email = user_info['email']
+
+        # Admin Logic from ENV (List supported)
+        admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+        is_admin_email = email in admin_emails
+
+        # Strict Domain Check for Students
+        if not is_admin_email and not email.endswith('@tsecmumbai.in'):
+             # Redirect to unauthorized page or show error
+             return f"<h1>Access Denied</h1><p>Only @tsecmumbai.in emails are allowed. <a href='{url_for('login')}'>Go Back</a></p>", 403
+
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
         user = cursor.fetchone()
 
         if not user:
-            is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
+            is_admin = 1 if is_admin_email else 0
             cursor.execute(
                 "INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)",
                 (user_info['email'], user_info.get('name', 'Unknown'), is_admin)
             )
             conn.commit()
         else:
-            # User exists, update their admin status if necessary
-            # Assuming is_admin is the 5th column (index 4)
-            current_is_admin = user[4] 
-            expected_is_admin = 1 if user_info['email'] == ADMIN_EMAIL else 0
+            # Update Admin Status if changed
+            current_is_admin = user[8] # Ensure index is correct based on schema
+            expected_is_admin = 1 if is_admin_email else 0
+            
             if current_is_admin != expected_is_admin:
                 cursor.execute(
                     "UPDATE users SET is_admin = ? WHERE email = ?",
-                    (expected_is_admin, user_info['email'])
+                    (expected_is_admin, email)
                 )
                 conn.commit()
+
+        # Name Consistency: Update session with DB name (in case user edited it locally)
+        # Re-fetch name from DB to be sure
+        cursor.execute("SELECT name FROM users WHERE email=?", (user_info['email'],))
+        db_name = cursor.fetchone()[0]
+        if db_name:
+            session['user']['name'] = db_name
+            session.modified = True
 
         conn.close()
         return redirect('/')
@@ -112,24 +150,55 @@ def additional_info():
     if request.method == 'POST':
         name = request.form['name']
         roll_number = request.form['roll_number']
+        enrollment_number = request.form['enrollment_number']
+        department = request.form['department']
+        academic_year = request.form['academic_year']
+        current_year = request.form['current_year']
 
         conn = create_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE users SET name = ?, roll_number = ? WHERE email = ?",
-            (name, roll_number, session['user']['email'])
+            """
+            UPDATE users 
+            SET name = ?, roll_number = ?, enrollment_number = ?, department = ?, academic_year = ?, current_year = ?
+            WHERE email = ?
+            """,
+            (name, roll_number, enrollment_number, department, academic_year, current_year, session['user']['email'])
         )
         conn.commit()
         conn.close()
 
+        # Name Consistency: Update session immediately
+        session['user']['name'] = name
+        session.modified = True
+
         return redirect(url_for('student_dashboard'))
 
+
+
     return render_template('additional_info.html')
+
+@app.route('/view_profile')
+def view_profile():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT email, name, roll_number, enrollment_number, department, academic_year, current_year FROM users WHERE email=?", (session['user']['email'],))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        return redirect(url_for('logout'))
+
+    return render_template('view_profile.html', user=user)
 
 
 @app.route('/admin/db/download')
 def download_db():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
     
     try:
@@ -140,7 +209,8 @@ def download_db():
 
 @app.route('/admin/db/upload', methods=['POST'])
 def upload_db():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
     
     if 'db_file' not in request.files:
@@ -167,7 +237,8 @@ def upload_db():
 
 @app.route('/admin/db/migrate', methods=['POST'])
 def migrate_db():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
     
     if 'db_file' not in request.files:
@@ -230,13 +301,42 @@ def migrate_db():
     return redirect(url_for('admin_dashboard'))
 
 
+@app.route('/admin/presets/delete/<int:preset_id>')
+def delete_preset(preset_id):
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Cascade delete (Subjects -> Components) handled? No, SQLite FK default is NO ACTION often unless ON DELETE CASCADE set.
+    # Manual cleanup is safer.
+    cursor.execute("SELECT id FROM subjects WHERE preset_id=?", (preset_id,))
+    subjects = cursor.fetchall()
+    
+    for subj in subjects:
+        cursor.execute("DELETE FROM components WHERE subject_id=?", (subj[0],))
+    
+    cursor.execute("DELETE FROM subjects WHERE preset_id=?", (preset_id,))
+    cursor.execute("DELETE FROM presets WHERE id=?", (preset_id,))
+
+    conn.commit()
+    conn.close()
+
+    flash("Preset deleted successfully!", "success")
+    return redirect(url_for('admin_dashboard'))
+
+
 @app.route('/admin/presets/edit/<int:preset_id>', methods=['POST'])
 def edit_preset(preset_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     academic_year = request.form['academic_year']
     course = request.form['course']
+    department = request.form['department'] # New Field
     year = request.form['year']
     division = request.form['division']
     semester = request.form['semester']
@@ -244,8 +344,8 @@ def edit_preset(preset_id):
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE presets SET academic_year=?, course=?, year=?, division=?, semester=? WHERE id=?",
-        (academic_year, course, year, division, semester, preset_id)
+        "UPDATE presets SET academic_year=?, course=?, department=?, year=?, division=?, semester=? WHERE id=?",
+        (academic_year, course, department, year, division, semester, preset_id)
     )
     conn.commit()
     conn.close()
@@ -256,12 +356,14 @@ def edit_preset(preset_id):
 
 @app.route('/admin/presets/duplicate/<int:preset_id>', methods=['POST'])
 def duplicate_preset(preset_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     # 1. Create the NEW Preset
     academic_year = request.form['academic_year']
     course = request.form['course']
+    department = request.form['department'] # New Field
     year = request.form['year']
     division = request.form['division']
     semester = request.form['semester']
@@ -270,8 +372,8 @@ def duplicate_preset(preset_id):
     cursor = conn.cursor()
     
     cursor.execute(
-        "INSERT INTO presets (academic_year, course, year, division, semester) VALUES (?, ?, ?, ?, ?)",
-        (academic_year, course, year, division, semester)
+        "INSERT INTO presets (academic_year, course, department, year, division, semester) VALUES (?, ?, ?, ?, ?, ?)",
+        (academic_year, course, department, year, division, semester)
     )
     new_preset_id = cursor.lastrowid
 
@@ -309,7 +411,10 @@ def duplicate_preset(preset_id):
 
 @app.route('/admin')
 def admin_dashboard():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    # Admin Logic from ENV (List supported)
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -320,11 +425,13 @@ def admin_dashboard():
     return render_template('admin.html', presets=presets)
 @app.route('/admin/presets/add', methods=['POST'])
 def add_preset():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     academic_year = request.form['academic_year']
-    course = request.form['course']
+    department = request.form['department'] # New Field
+    course = 'BE' # Hardcoded
     year = request.form['year']
     division = request.form['division']
     semester = request.form['semester']
@@ -332,8 +439,8 @@ def add_preset():
     conn = create_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO presets (academic_year, course, year, division, semester) VALUES (?, ?, ?, ?, ?)",
-        (academic_year, course, year, division, semester)
+        "INSERT INTO presets (academic_year, course, department, year, division, semester) VALUES (?, ?, ?, ?, ?, ?)",
+        (academic_year, course, department, year, division, semester)
     )
     conn.commit()
     conn.close()
@@ -345,10 +452,25 @@ def add_preset():
 @app.route('/student', methods=['GET', 'POST'])
 def student_dashboard():
     if 'user' not in session:
-        return redirect(url_for('index'))
+        return redirect(url_for('login'))
 
     conn = create_connection()
     cursor = conn.cursor()
+
+    user_email = session['user']['email']
+    user_email = session['user']['email']
+    # Fetch user details including department and current_year
+    cursor.execute("SELECT id, name, roll_number, current_year, department FROM users WHERE email=?", (user_email,))
+    user = cursor.fetchone()
+    
+    if not user:
+         conn.close()
+         session.pop('user', None)
+         return redirect(url_for('login'))
+
+    user_id = user[0]
+    current_year = user[3]
+    department = user[4]
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -375,8 +497,30 @@ def student_dashboard():
                 cursor.execute("SELECT * FROM components WHERE subject_id=?", (s[0],))
                 subject_components[s[0]] = cursor.fetchall()
             
-            # Fetch all presets again to keep the dropdown populated
-            cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets")
+            # Fetch existing marks for this user and preset
+            # We want to map component_id -> marks_obtained
+            marks_map = {}
+            cursor.execute("""
+                SELECT component_id, marks_obtained FROM student_marks 
+                WHERE user_id=? AND component_id IN (
+                    SELECT id FROM components WHERE subject_id IN (
+                        SELECT id FROM subjects WHERE preset_id=?
+                    )
+                )
+            """, (user_id, preset_id))
+            existing_marks = cursor.fetchall()
+            for m in existing_marks:
+                marks_map[m[0]] = m[1]
+            
+            # Fetch presets (Filtered by current_year)
+            # Fetch presets (Filtered by current_year and department)
+            if current_year and department:
+                 # Check if department column exists is handled by schema update
+                cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets WHERE year=? AND department=?", (current_year, department))
+            elif current_year:
+                cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets WHERE year=?", (current_year,))
+            else:
+                cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets")
             presets = cursor.fetchall()
             
             conn.close()
@@ -385,21 +529,13 @@ def student_dashboard():
                 presets=presets,
                 selected_preset=preset,
                 subjects=subjects,
-                subject_components=subject_components
+                subject_components=subject_components,
+                marks_map=marks_map, # Pass marks to template
+                user=user
             )
 
         elif action == 'calculate_cgpa':
             try:
-                user_email = session['user']['email']
-                cursor.execute("SELECT id FROM users WHERE email=?", (user_email,))
-                user_result = cursor.fetchone()
-                
-                if not user_result:
-                    flash("User not found. Please log in again.", "error")
-                    return redirect(url_for('login'))
-                
-                user_id = user_result[0]
-
                 subject_ids = request.form.getlist('subjects')
                 
                 if not subject_ids:
@@ -413,7 +549,7 @@ def student_dashboard():
                     cursor.execute("SELECT credits FROM subjects WHERE id=?", (subject_id,))
                     res_credits = cursor.fetchone()
                     if not res_credits: 
-                        continue # Skip if bad subject ID
+                        continue 
                     credits = res_credits[0]
 
                     cursor.execute("SELECT id, max_marks FROM components WHERE subject_id=?", (subject_id,))
@@ -424,7 +560,6 @@ def student_dashboard():
 
                     for comp_id, max_marks in components:
                         marks_str = request.form.get(f'marks_{comp_id}', '0')
-                        # Handle empty strings and non-numeric input
                         if not marks_str or not marks_str.strip():
                             marks_str = '0'
                         marks_str = marks_str.strip()
@@ -454,24 +589,16 @@ def student_dashboard():
                     if grade_res:
                         grade, grade_point = grade_res
                     else:
-                        # Fallback if no rule matches
                         grade, grade_point = 'F', 0.0
 
                     total_credits += credits
                     total_weighted_points += grade_point * credits
 
                     cursor.execute(
-                        "INSERT OR REPLACE INTO subject_results (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO subject_results (user_id, subject_id, total_obtained_marks, total_max_marks, percentage, grade, grade_point) VALUES (?, ?, ?, ?, ?, ?, ?)",
                         (user_id, subject_id, total_obtained, total_max, percentage, grade, grade_point)
                     )
 
-                # Note: We calculate a global CGPA here, but for display we will calculate semester-wise SGPA dynamically.
-                # Use total_credits and total_weighted_points from just this calculation? 
-                # NO, the current request calculates CGPA based only on *submitted* subjects.
-                # If we want a true global CGPA, we'd need to fetch ALL past results. 
-                # For now, let's keep this as storing a "latest run" CGPA in the cgpa table, 
-                # but relies on separate SGPA calculation in view_result.
-                
                 cgpa = total_weighted_points / total_credits if total_credits else 0
 
                 cursor.execute(
@@ -486,23 +613,26 @@ def student_dashboard():
                 return redirect(url_for('view_result'))
                 
             except Exception as e:
-                import traceback
-                error_details = traceback.format_exc()
-                print(f"Error calculating CGPA: {e}")
-                print(f"Full traceback:\n{error_details}")
                 if 'conn' in locals():
                     conn.rollback()
                     conn.close()
                 flash(f"An error occurred during calculation: {str(e)}", "error")
                 return redirect(url_for('student_dashboard'))
 
-    # GET request: Fetch all presets for the dropdown
-    cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets")
+    # GET request: Fetch presets filtered by user's current year and department
+    if current_year and department:
+        cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets WHERE year=? AND department=?", (current_year, department))
+    elif current_year:
+        cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets WHERE year=?", (current_year,))
+    else:
+        cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets")
     presets = cursor.fetchall()
-
+    
     conn.close()
+    return render_template('student.html', presets=presets, user=user)
 
-    return render_template('student.html', presets=presets)
+
+
 
 
 @app.route('/result')
@@ -532,8 +662,8 @@ def view_result():
                 p.year,
                 p.semester,
                 s.name as subject_name, 
-                sr.total_obtained, 
-                sr.total_max, 
+                sr.total_obtained_marks, 
+                sr.total_max_marks, 
                 sr.percentage, 
                 sr.grade, 
                 sr.grade_point,
@@ -600,12 +730,13 @@ def view_result():
 
 @app.route('/admin/students')
 def view_students():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, name, roll_number, email FROM users WHERE is_admin=0")
+    cursor.execute("SELECT id, name, roll_number, email, enrollment_number, department, academic_year, current_year FROM users WHERE is_admin=0")
     students = cursor.fetchall()
     conn.close()
 
@@ -614,7 +745,8 @@ def view_students():
 
 @app.route('/admin/grading_rules', methods=['GET', 'POST'])
 def manage_grading_rules():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -642,9 +774,46 @@ def manage_grading_rules():
     return render_template('manage_grading_rules.html', rules=rules)
 
 
-@app.route('/admin/presets/<int:preset_id>/subjects')
+@app.route('/admin/subjects/edit/<int:subject_id>', methods=['GET', 'POST'])
+def edit_subject(subject_id):
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        name = request.form['name']
+        code = request.form['code']
+        credits = request.form['credits']
+        
+        cursor.execute("UPDATE subjects SET name=?, code=?, credits=? WHERE id=?", (name, code, credits, subject_id))
+        conn.commit()
+        conn.close()
+        
+        # Determine redirect target (preset_id is needed for manage_subjects)
+        preset_id = request.args.get('preset_id')
+        if preset_id:
+             return redirect(url_for('manage_subjects', preset_id=preset_id))
+        else:
+             # Fallback if preset_id lost, though usually passed in query string
+             return redirect(url_for('admin_dashboard'))
+
+    cursor.execute("SELECT * FROM subjects WHERE id=?", (subject_id,))
+    subject = cursor.fetchone()
+    conn.close()
+    
+    if not subject:
+         flash('Subject not found', 'error')
+         return redirect(url_for('admin_dashboard'))
+
+    return render_template('edit_subject.html', subject=subject)
+
+@app.route('/admin/subjects/<int:preset_id>', methods=['GET'])
 def manage_subjects(preset_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -673,7 +842,8 @@ def manage_subjects(preset_id):
 
 @app.route('/admin/presets/<int:preset_id>/subjects/add', methods=['POST'])
 def add_subject(preset_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     name = request.form['name']
@@ -706,7 +876,8 @@ def add_subject(preset_id):
 
 @app.route('/admin/subjects/delete/<int:subject_id>')
 def delete_subject(subject_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -727,7 +898,8 @@ def delete_subject(subject_id):
 
 @app.route('/admin/students/edit/<int:user_id>', methods=['GET', 'POST'])
 def edit_student_record(user_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -737,9 +909,14 @@ def edit_student_record(user_id):
         name = request.form['name']
         roll_number = request.form['roll_number']
 
+        department = request.form['department']
+        enrollment_number = request.form['enrollment_number']
+        academic_year = request.form['academic_year']
+        current_year = request.form['current_year']
+
         cursor.execute(
-            "UPDATE users SET name=?, roll_number=? WHERE id=?",
-            (name, roll_number, user_id)
+            "UPDATE users SET name=?, roll_number=?, enrollment_number=?, department=?, academic_year=?, current_year=? WHERE id=?",
+            (name, roll_number, enrollment_number, department, academic_year, current_year, user_id)
         )
 
         conn.commit()
@@ -748,7 +925,7 @@ def edit_student_record(user_id):
         flash("Student updated!", "success")
         return redirect(url_for('view_students'))
 
-    cursor.execute("SELECT name, roll_number FROM users WHERE id=?", (user_id,))
+    cursor.execute("SELECT name, roll_number, enrollment_number, department, academic_year, current_year FROM users WHERE id=?", (user_id,))
     student = cursor.fetchone()
 
     conn.close()
@@ -757,7 +934,8 @@ def edit_student_record(user_id):
 
 @app.route('/admin/students/delete/<int:user_id>')
 def delete_student_record(user_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -777,7 +955,8 @@ def delete_student_record(user_id):
 
 @app.route('/admin/students/<int:user_id>/marks')
 def view_student_marks(user_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -797,8 +976,8 @@ def view_student_marks(user_id):
             s.name as subject_name, 
             s.code,
             s.credits,
-            sr.total_obtained, 
-            sr.total_max, 
+            sr.total_obtained_marks, 
+            sr.total_max_marks, 
             sr.percentage, 
             sr.grade, 
             sr.grade_point,
@@ -878,7 +1057,8 @@ def view_student_marks(user_id):
 
 @app.route('/admin/students/<int:user_id>/download_csv')
 def download_student_csv(user_id):
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     import csv
@@ -888,35 +1068,12 @@ def download_student_csv(user_id):
     cursor = conn.cursor()
 
     # Get student info
-    cursor.execute("SELECT name, roll_number, email FROM users WHERE id=?", (user_id,))
+    cursor.execute("SELECT name, roll_number, email, enrollment_number, department, current_year FROM users WHERE id=?", (user_id,))
     student = cursor.fetchone()
     student_name = student[0]
 
     # Get Marks Data
-    cursor.execute("""
-        SELECT s.name, s.code, c.name, sm.marks_obtained, c.max_marks
-        FROM student_marks sm
-        JOIN components c ON sm.component_id = c.id
-        JOIN subjects s ON c.subject_id = s.id
-        WHERE sm.user_id = ?
-        ORDER BY s.name, c.name
-    """, (user_id,))
-    marks_data = cursor.fetchall()
-    
-    # Get Result Data
-    cursor.execute("""
-        SELECT s.name, sr.percentage, sr.grade, sr.grade_point
-        FROM subject_results sr
-        JOIN subjects s ON sr.subject_id = s.id
-        WHERE sr.user_id = ?
-    """, (user_id,))
-    results_data = cursor.fetchall()
-    
-    cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
-    cgpa_row = cursor.fetchone()
-    cgpa = cgpa_row[0] if cgpa_row else "N/A"
-
-    conn.close()
+    # ... (skipping context)
 
     # Generate CSV
     output = io.StringIO()
@@ -926,6 +1083,9 @@ def download_student_csv(user_id):
     writer.writerow(['Name', student[0]])
     writer.writerow(['Roll Number', student[1]])
     writer.writerow(['Email', student[2]])
+    writer.writerow(['Enrollment Number', student[3] or '-'])
+    writer.writerow(['Department', student[4] or '-'])
+    writer.writerow(['Current Year', student[5] or '-'])
     writer.writerow(['SGPA/CGPA', cgpa])
     writer.writerow([])
     
@@ -955,7 +1115,8 @@ def download_student_csv(user_id):
 
 @app.route('/admin/master_sheet')
 def master_sheet():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
 
     conn = create_connection()
@@ -1045,7 +1206,8 @@ def master_sheet():
 
 @app.route('/admin/master_sheet/download')
 def download_master_csv():
-    if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
         return redirect(url_for('index'))
     
     selected_preset_id = request.args.get('preset_id')
@@ -1125,5 +1287,100 @@ def download_pdf():
     flash("PDF generation coming soon!", "info")
     return redirect(url_for('view_result'))
 
+
+@app.route('/dev_login', methods=['GET', 'POST'])
+def dev_login():
+    if not DEV_MODE:
+        return "Developer Mode Not Enabled", 403
+
+    if request.method == 'POST':
+        role = request.form.get('role', 'student')
+        
+        if role == 'admin':
+            admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+            email = admin_emails[0] if admin_emails else "admin@tsecmumbai.in"
+            # User wants "developer mode". Let's use the real admin email so they can access admin dashboard 
+            # if the real admin email is hardcoded.
+            # But wait, logic at line 122 of original file checks user_info['email'] == ADMIN_EMAIL.
+            pass
+        
+        email = "dev.admin@tsecmumbai.in" if role == 'admin' else "dev.student@tsecmumbai.in"
+        # Wait, if I use dev.admin, I must ensure it is granted is_admin=1 in DB.
+        
+        name = "Dev Admin" if role == 'admin' else "Dev Student"
+        
+        # Override for testing actual admin logic if needed
+        if role == 'admin':
+             # Check if we should use the hardcoded admin email to pass strict checks?
+             # existing code checks `if user_info['email'] == ADMIN_EMAIL`.
+             # So I MUST use `ADMIN_EMAIL` to be recognized as Admin in `admin_dashboard`?
+             # Line 365: `if 'user' not in session or session['user']['email'] != ADMIN_EMAIL:`
+             # Yes. I must use the specific email.
+             admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+             email = admin_emails[0] if admin_emails else "admin@tsecmumbai.in"
+             name = "Dev Admin (Master)"
+
+        user_info = {
+            'email': email,
+            'name': name,
+            'picture': 'https://ui-avatars.com/api/?name=' + name.replace(' ', '+')
+        }
+        
+        conn = create_connection()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE email=?", (email,))
+        u = c.fetchone()
+        
+        if not u:
+             c.execute("INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)", 
+                       (email, name, 1 if role=='admin' else 0))
+             conn.commit()
+        else:
+             # Ensure admin status match
+             current_status = u[8] # is_admin
+             target_status = 1 if role == 'admin' else 0
+             if current_status != target_status:
+                 c.execute("UPDATE users SET is_admin=? WHERE email=?", (target_status, email))
+                 conn.commit()
+             
+             # Sync name if existing user
+             user_info['name'] = u[2]
+
+        conn.close()
+        
+        session['user'] = user_info
+        return redirect('/')
+        
+    return render_template('dev_login.html')
+
+@app.route('/admin/promote', methods=['GET', 'POST'])
+def promote_students():
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        from_year = request.form['from_year']
+        to_year = request.form['to_year']
+        
+        conn = create_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM users WHERE current_year=?", (from_year,))
+        count = cursor.fetchone()[0]
+        
+        if count > 0:
+            cursor.execute("UPDATE users SET current_year=? WHERE current_year=?", (to_year, from_year))
+            conn.commit()
+            flash(f"Successfully promoted {count} students from {from_year} to {to_year}!", "success")
+        else:
+            flash(f"No students found in {from_year}.", "warning")
+            
+        conn.close()
+        return redirect(url_for('promote_students'))
+        
+    return render_template('promote_students.html')
+
 if __name__ == '__main__':
+    create_tables()
     app.run(debug=True)

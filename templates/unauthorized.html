@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Access Denied{% endblock %}
+{% block content %}
+<div class="glass card" style="text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 4rem auto;">
+    <div style="font-size: 4rem; margin-bottom: 1.5rem;">🚫</div>
+    <h1 style="color: var(--danger); font-size: 2.5rem; margin-bottom: 1rem;">Access Denied</h1>
+    <p style="font-size: 1.1rem; color: var(--text-muted); margin-bottom: 2rem; line-height: 1.6;">
+        This application is exclusive to TSEC students.<br>
+        Please sign in with your institutional <strong>@tsecmumbai.in</strong> email address.
+    </p>
+    <a href="{{ url_for('logout') }}" class="btn btn-primary" style="background: var(--primary);">
+        <i class="fas fa-sign-out-alt"></i> Try Different Account
+    </a>
+</div>
+{% endblock %}

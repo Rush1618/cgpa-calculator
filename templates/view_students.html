@@ -7,12 +7,16 @@
     <h1>Registered Students</h1>
 
     <div class="glass table-container" style="margin-top: 2rem;">
-        <table>
+        <table class="sortable-table">
             <thead>
                 <tr>
                     <th>Name</th>
                     <th>Roll Number</th>
+                    <th>Enrollment No.</th>
                     <th>Email</th>
+
+                    <th>Department</th>
+                    <th>Year</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -21,7 +25,11 @@
                 <tr>
                     <td style="font-weight: 500; color: var(--text-main);">{{ student[1] }}</td>
                     <td>{{ student[2] }}</td>
+                    <td>{{ student[4] or '-' }}</td>
                     <td>{{ student[3] }}</td>
+
+                    <td>{{ student[5] or '-' }}</td>
+                    <td>{{ student[7] or '-' }}</td>
                     <td class="action-buttons">
                         <a href="{{ url_for('view_student_marks', user_id=student[0]) }}" class="btn-icon"
                             title="View Results"><i class="fas fa-chart-bar"></i></a>
