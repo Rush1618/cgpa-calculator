@@ -79,7 +79,10 @@ def authorize():
         
         # Strict Domain Check
         email = user_info['email']
-        if not email.endswith('@tsecmumbai.in') and email != ADMIN_EMAIL:
+        # Load admin emails for bypass check
+        admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+        
+        if not email.endswith('@tsecmumbai.in') and email not in admin_emails:
             # Revoke/Clear session immediately
             session.pop('user', None)
             return render_template('unauthorized.html')
@@ -88,10 +91,7 @@ def authorize():
 
         conn = create_connection()
         cursor = conn.cursor()
-        email = user_info['email']
-
         # Admin Logic from ENV (List supported)
-        admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
         is_admin_email = email in admin_emails
 
         # Strict Domain Check for Students
