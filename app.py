@@ -580,16 +580,15 @@ def student_dashboard():
                     else:
                         percentage = 0
 
-                    cursor.execute(
-                        "SELECT grade, grade_point FROM grading_rules WHERE ? BETWEEN min_percentage AND max_percentage",
-                        (percentage,)
-                    )
-                    grade_res = cursor.fetchone()
+                    # Find new grade from rules
+                    cursor.execute("SELECT min_percentage, max_percentage, grade, grade_point FROM grading_rules")
+                    rules = cursor.fetchall()
                     
-                    if grade_res:
-                        grade, grade_point = grade_res
-                    else:
-                        grade, grade_point = 'F', 0.0
+                    grade, grade_point = 'F', 0.0
+                    for min_p, max_p, g, p in rules:
+                        if percentage >= min_p and percentage <= max_p:
+                            grade, grade_point = g, p
+                            break
 
                     total_credits += credits
                     total_weighted_points += grade_point * credits
@@ -760,12 +759,54 @@ def manage_grading_rules():
         points = request.form.getlist('grade_point')
 
         for i in range(len(rule_ids)):
-            cursor.execute(
-                "UPDATE grading_rules SET min_percentage=?, max_percentage=?, grade=?, grade_point=? WHERE id=?",
-                (mins[i], maxs[i], grades[i], points[i], rule_ids[i])
-            )
+            try:
+                # Basic validation: ensure values aren't empty
+                min_val = float(mins[i]) if mins[i] else 0.0
+                max_val = float(maxs[i]) if maxs[i] else 100.0
+                grade_val = grades[i].upper() if grades[i] else 'F'
+                point_val = float(points[i]) if points[i] else 0.0
+                
+                cursor.execute(
+                    "UPDATE grading_rules SET min_percentage=?, max_percentage=?, grade=?, grade_point=? WHERE id=?",
+                    (min_val, max_val, grade_val, point_val, rule_ids[i])
+                )
+            except (ValueError, IndexError):
+                continue
+
+        # Recalculate all grades and CGPA since rules changed
+        cursor.execute("SELECT min_percentage, max_percentage, grade, grade_point FROM grading_rules")
+        current_rules = cursor.fetchall()
+
+        cursor.execute("PRAGMA table_info(subject_results)")
+        columns = [col[1] for col in cursor.fetchall()]
+        obt_col = 'total_obtained_marks' if 'total_obtained_marks' in columns else 'total_obtained'
+        max_col = 'total_max_marks' if 'total_max_marks' in columns else 'total_max'
+
+        cursor.execute(f"SELECT id, user_id, {obt_col}, {max_col} FROM subject_results")
+        all_results = cursor.fetchall()
+
+        for res_id, u_id, obt, mx in all_results:
+            perc = (obt / mx * 100) if mx and mx > 0 else 0
+            new_g, new_p = 'F', 0.0
+            for r_min, r_max, r_g, r_p in current_rules:
+                if perc >= r_min and perc <= r_max:
+                    new_g, new_p = r_g, r_p
+                    break
+            cursor.execute("UPDATE subject_results SET percentage=?, grade=?, grade_point=? WHERE id=?", (perc, new_g, new_p, res_id))
+
+        # Update CGPAs
+        cursor.execute("SELECT DISTINCT user_id FROM subject_results")
+        u_ids = cursor.fetchall()
+        for (u_id,) in u_ids:
+            cursor.execute("SELECT sr.grade_point, s.credits FROM subject_results sr JOIN subjects s ON sr.subject_id = s.id WHERE sr.user_id=?", (u_id,))
+            marks = cursor.fetchall()
+            t_cred = sum(m[1] for m in marks)
+            t_pts = sum(m[0] * m[1] for m in marks)
+            new_cgpa = t_pts / t_cred if t_cred > 0 else 0
+            cursor.execute("INSERT OR REPLACE INTO cgpa (user_id, cgpa) VALUES (?, ?)", (u_id, new_cgpa))
 
         conn.commit()
+        flash("Grading rules updated and all student records recalculated!", "success")
 
     cursor.execute("SELECT * FROM grading_rules")
     rules = cursor.fetchall()
