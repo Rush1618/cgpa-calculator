@@ -1,23 +1,67 @@
-{% extends 'base.html' %}
-
-{% block title %}Login{% endblock %}
-
-{% block content %}
+{% extends 'base.html' %} {% block title %}Login{% endblock %} {% block content
+%}
 <div class="login-container">
-    <div class="glass" style="max-width: 400px; width: 90%; padding: 3rem; text-align: center;">
-        <div style="margin-bottom: 2rem;">
-            <i class="fas fa-graduation-cap" style="font-size: 4rem; color: var(--primary);"></i>
-        </div>
-
-        <h1 style="margin-bottom: 0.5rem; color: var(--text-main);">Welcome Back</h1>
-        <p style="color: var(--text-muted); margin-bottom: 2.5rem;">Sign in to access your CGPA dashboard</p>
-
-        <a href="{{ url_for('login') }}" class="btn btn-primary"
-            style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 1rem; padding: 1rem;">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google"
-                style="width: 24px; height: 24px;">
-            Continue with Google
-        </a>
+  <div
+    class="glass"
+    style="max-width: 400px; width: 90%; padding: 3rem; text-align: center"
+  >
+    <div style="margin-bottom: 2rem">
+      <i
+        class="fas fa-graduation-cap"
+        style="font-size: 4rem; color: var(--primary)"
+      ></i>
     </div>
+
+    <h1 style="margin-bottom: 0.5rem; color: var(--text-main)">Welcome Back</h1>
+    <p style="color: var(--text-muted); margin-bottom: 2.5rem">
+      Sign in to access your CGPA dashboard
+    </p>
+
+    {% if dev_mode %}
+    <div style="margin-top: 1.5rem;">
+      <a
+        href="{{ url_for('dev_login') }}"
+        class="btn btn-primary"
+        style="
+          width: 100%;
+          padding: 1rem;
+          background: var(--danger);
+          border-color: var(--danger);
+          box-shadow: 0 4px 20px var(--danger-glow);
+        "
+      >
+        <i class="fas fa-bug"></i> Developer Login Bypass
+      </a>
+    </div>
+
+    <div style="margin: 2rem 0; display: flex; align-items: center; gap: 1rem">
+      <div style="flex: 1; height: 1px; background: var(--border)"></div>
+      <span style="color: var(--text-muted); font-size: 0.9rem">OR</span>
+      <div style="flex: 1; height: 1px; background: var(--border)"></div>
+    </div>
+    {% endif %}
+
+    <a
+      href="{{ url_for('google_login') }}"
+      class="btn btn-secondary"
+      style="
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+      "
+    >
+      <img
+        src="https://www.svgrepo.com/show/475656/google-color.svg"
+        alt="Google"
+        style="width: 24px; height: 24px"
+      />
+      Continue with Google
+    </a>
+  </div>
 </div>
 {% endblock %}

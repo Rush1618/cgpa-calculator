@@ -63,12 +63,67 @@ def index():
 
 
 @app.context_processor
-@app.context_processor
 def inject_now():
-    return {'now': datetime.utcnow(), 'dev_mode': DEV_MODE}
+    admin_emails = [e.strip() for e in os.getenv('ADMIN_EMAILS', '').split(',') if e.strip()]
+    return {
+        'now': datetime.utcnow(), 
+        'dev_mode': DEV_MODE,
+        'admin_emails': admin_emails
+    }
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+    if DEV_MODE and request.method == 'POST':
+        email = request.form.get('email')
+        name = request.form.get('name', 'Dev User')
+        
+        if not email:
+            flash("Email is required", "error")
+            return redirect(url_for('login'))
+
+        user_info = {
+            'email': email,
+            'name': name,
+            'picture': 'https://ui-avatars.com/api/?name=' + name.replace(' ', '+')
+        }
+        session['user'] = user_info
+
+        conn = create_connection()
+        cursor = conn.cursor()
+        
+        # Admin check
+        admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+        is_admin = 1 if email in admin_emails else 0
+
+        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+        user = cursor.fetchone()
+
+        if not user:
+            cursor.execute(
+                "INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)",
+                (email, name, is_admin)
+            )
+            conn.commit()
+        else:
+            # Sync admin status
+            if user[8] != is_admin:
+                cursor.execute("UPDATE users SET is_admin = ? WHERE email = ?", (is_admin, email))
+                conn.commit()
+            
+            # Sync name
+            session['user']['name'] = user[2]
+            session.modified = True
+
+        conn.close()
+        return redirect(url_for('index'))
+
+    if DEV_MODE:
+        return render_template('login.html', dev_mode=True)
+    
+    return redirect(url_for('google_login'))
+
+@app.route('/login/google')
+def google_login():
     return google.authorize_redirect(url_for('authorize', _external=True))
 
 @app.route('/authorize')
@@ -1393,6 +1448,16 @@ def dev_login():
         return redirect('/')
         
     return render_template('dev_login.html')
+
+@app.route('/dev/toggle')
+def toggle_dev_mode():
+    # Only allow if current session is admin or if we're on localhost
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' in session and session['user']['email'] in admin_emails:
+        # In a real app, you'd update a DB or config. For this task, let's just use session.
+        # But wait, DEV_MODE is global. Let's just provide a helpful message.
+        return "Dev mode is controlled via .env file (DEV_MODE=true/false).", 200
+    return "Unauthorized", 401
 
 @app.route('/admin/promote', methods=['GET', 'POST'])
 def promote_students():
