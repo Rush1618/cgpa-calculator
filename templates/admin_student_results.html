@@ -223,10 +223,16 @@
                 <div class="sem-title">{{ data.course }} — {{ data.year }} Year</div>
                 <div class="sem-subtitle"><i class="fas fa-calendar"></i> Semester {{ data.semester }}</div>
             </div>
-            <span class="sgpa-pill" style="background: linear-gradient(135deg,
-                {% if data.sgpa >= 8 %}var(--success), #059669{% elif data.sgpa >= 6 %}var(--info), #0891b2{% elif data.sgpa >= 4 %}var(--warning), #d97706{% else %}var(--danger), #dc2626{% endif %});">
-                SGPA {{ data.sgpa }}
-            </span>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <a href="{{ url_for('download_student_pdf_admin', user_id=student[0], preset_id=preset_id) }}" class="btn" 
+                   style="padding: 0.35rem 0.75rem; font-size: 0.75rem; background: rgba(79,70,229,0.08); border: 1px solid rgba(79,70,229,0.15); color: var(--primary); display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </a>
+                <span class="sgpa-pill" style="background: linear-gradient(135deg,
+                    {% if data.sgpa >= 8 %}var(--success), #059669{% elif data.sgpa >= 6 %}var(--info), #0891b2{% elif data.sgpa >= 4 %}var(--warning), #d97706{% else %}var(--danger), #dc2626{% endif %});">
+                    SGPA {{ data.sgpa }}
+                </span>
+            </div>
         </div>
 
         <div style="padding: 1.5rem; display: grid; gap: 1rem;">

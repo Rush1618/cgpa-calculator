@@ -348,9 +348,15 @@
                     &bull; {{ data.total_credits }} credits
                 </div>
             </div>
-            <div class="sgpa-badge">
-                <span class="tag">SGPA</span>
-                <span class="val" style="color: {{ sgpa_color }};">{{ data.sgpa }}</span>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <a href="{{ url_for('download_pdf', preset_id=pid) }}" class="btn" 
+                   style="padding: 0.35rem 0.75rem; font-size: 0.75rem; background: rgba(79,70,229,0.08); border: 1px solid rgba(79,70,229,0.15); color: var(--primary); display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 8px; text-decoration: none; font-weight: 600;">
+                    <i class="fas fa-file-pdf"></i> Download PDF
+                </a>
+                <div class="sgpa-badge">
+                    <span class="tag">SGPA</span>
+                    <span class="val" style="color: {{ sgpa_color }};">{{ data.sgpa }}</span>
+                </div>
             </div>
         </div>
 

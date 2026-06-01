@@ -1495,26 +1495,48 @@ def download_student_pdf_admin(user_id):
             
         user_id, student_name, roll_number, enrollment_number, department, current_year = user_res
 
+        preset_id = request.args.get('preset_id', type=int)
         # Fetch results
-        cursor.execute("""
-            SELECT 
-                p.course,
-                p.year,
-                p.semester,
-                s.name as subject_name, 
-                sr.total_obtained_marks, 
-                sr.total_max_marks, 
-                sr.percentage, 
-                sr.grade, 
-                sr.grade_point,
-                s.credits,
-                s.code
-            FROM subject_results sr
-            JOIN subjects s ON sr.subject_id = s.id
-            JOIN presets p ON s.preset_id = p.id
-            WHERE sr.user_id = ?
-            ORDER BY p.year ASC, p.semester ASC
-        """, (user_id,))
+        if preset_id:
+            cursor.execute("""
+                SELECT 
+                    p.course,
+                    p.year,
+                    p.semester,
+                    s.name as subject_name, 
+                    sr.total_obtained_marks, 
+                    sr.total_max_marks, 
+                    sr.percentage, 
+                    sr.grade, 
+                    sr.grade_point,
+                    s.credits,
+                    s.code
+                FROM subject_results sr
+                JOIN subjects s ON sr.subject_id = s.id
+                JOIN presets p ON s.preset_id = p.id
+                WHERE sr.user_id = ? AND p.id = ?
+                ORDER BY p.year ASC, p.semester ASC
+            """, (user_id, preset_id))
+        else:
+            cursor.execute("""
+                SELECT 
+                    p.course,
+                    p.year,
+                    p.semester,
+                    s.name as subject_name, 
+                    sr.total_obtained_marks, 
+                    sr.total_max_marks, 
+                    sr.percentage, 
+                    sr.grade, 
+                    sr.grade_point,
+                    s.credits,
+                    s.code
+                FROM subject_results sr
+                JOIN subjects s ON sr.subject_id = s.id
+                JOIN presets p ON s.preset_id = p.id
+                WHERE sr.user_id = ?
+                ORDER BY p.year ASC, p.semester ASC
+            """, (user_id,))
         
         raw_results = cursor.fetchall()
         
@@ -1617,6 +1639,7 @@ def download_student_pdf_admin(user_id):
         story.append(Spacer(1, 10))
 
         # Student Details Card Grid
+        gpa_label = "Semester GPA" if preset_id else "Cumulative GPA"
         details_data = [
             [
                 Paragraph(f"<b>Name:</b> {student_name}", header_style),
@@ -1628,7 +1651,7 @@ def download_student_pdf_admin(user_id):
             ],
             [
                 Paragraph(f"<b>Current Semester:</b> Semester {current_year or '-'}", header_style),
-                Paragraph(f"<b>Cumulative GPA:</b> <font color='#4f46e5'><b>{overall_cgpa}</b></font>", header_style)
+                Paragraph(f"<b>{gpa_label}:</b> <font color='#4f46e5'><b>{overall_cgpa}</b></font>", header_style)
             ]
         ]
         details_table = Table(details_data, colWidths=[260, 260])
@@ -1933,26 +1956,48 @@ def download_pdf():
             
         user_id, student_name, roll_number, enrollment_number, department, current_year = user_res
 
+        preset_id = request.args.get('preset_id', type=int)
         # Fetch results
-        cursor.execute("""
-            SELECT 
-                p.course,
-                p.year,
-                p.semester,
-                s.name as subject_name, 
-                sr.total_obtained_marks, 
-                sr.total_max_marks, 
-                sr.percentage, 
-                sr.grade, 
-                sr.grade_point,
-                s.credits,
-                s.code
-            FROM subject_results sr
-            JOIN subjects s ON sr.subject_id = s.id
-            JOIN presets p ON s.preset_id = p.id
-            WHERE sr.user_id = ?
-            ORDER BY p.year ASC, p.semester ASC
-        """, (user_id,))
+        if preset_id:
+            cursor.execute("""
+                SELECT 
+                    p.course,
+                    p.year,
+                    p.semester,
+                    s.name as subject_name, 
+                    sr.total_obtained_marks, 
+                    sr.total_max_marks, 
+                    sr.percentage, 
+                    sr.grade, 
+                    sr.grade_point,
+                    s.credits,
+                    s.code
+                FROM subject_results sr
+                JOIN subjects s ON sr.subject_id = s.id
+                JOIN presets p ON s.preset_id = p.id
+                WHERE sr.user_id = ? AND p.id = ?
+                ORDER BY p.year ASC, p.semester ASC
+            """, (user_id, preset_id))
+        else:
+            cursor.execute("""
+                SELECT 
+                    p.course,
+                    p.year,
+                    p.semester,
+                    s.name as subject_name, 
+                    sr.total_obtained_marks, 
+                    sr.total_max_marks, 
+                    sr.percentage, 
+                    sr.grade, 
+                    sr.grade_point,
+                    s.credits,
+                    s.code
+                FROM subject_results sr
+                JOIN subjects s ON sr.subject_id = s.id
+                JOIN presets p ON s.preset_id = p.id
+                WHERE sr.user_id = ?
+                ORDER BY p.year ASC, p.semester ASC
+            """, (user_id,))
         
         raw_results = cursor.fetchall()
         
@@ -2055,6 +2100,7 @@ def download_pdf():
         story.append(Spacer(1, 10))
 
         # Student Details Card Grid
+        gpa_label = "Semester GPA" if preset_id else "Cumulative GPA"
         details_data = [
             [
                 Paragraph(f"<b>Name:</b> {student_name}", header_style),
@@ -2066,7 +2112,7 @@ def download_pdf():
             ],
             [
                 Paragraph(f"<b>Current Semester:</b> Semester {current_year or '-'}", header_style),
-                Paragraph(f"<b>Cumulative GPA:</b> <font color='#4f46e5'><b>{overall_cgpa}</b></font>", header_style)
+                Paragraph(f"<b>{gpa_label}:</b> <font color='#4f46e5'><b>{overall_cgpa}</b></font>", header_style)
             ]
         ]
         details_table = Table(details_data, colWidths=[260, 260])
