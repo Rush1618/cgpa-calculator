@@ -164,10 +164,10 @@
             </div>
         </div>
         <div class="profile-actions">
-            <button onclick="window.print()" class="btn btn-primary"
-                style="background: #10b981; border: 1.5px solid #059669;">
-                <i class="fas fa-print"></i> Print Report
-            </button>
+            <a href="{{ url_for('download_student_pdf_admin', user_id=student[0]) }}" class="btn btn-primary"
+                style="background: #10b981; border: 1.5px solid #059669; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </a>
             <a href="{{ url_for('download_student_csv', user_id=student[0]) }}" class="btn btn-primary"
                 style="background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,255,255,0.3);">
                 <i class="fas fa-file-csv"></i> Export CSV
@@ -186,8 +186,8 @@
             <div class="stat-l">CGPA / SGPA</div>
         </div>
         <div class="cgpa-stat">
-            <div class="stat-v" style="color: var(--info);">{{ grouped_results | length }}</div>
-            <div class="stat-l">Semesters</div>
+            <div class="stat-v" style="color: var(--info);">{{ student[7] or 'N/A' }}</div>
+            <div class="stat-l">Current Semester</div>
         </div>
         <div class="cgpa-stat">
             <div class="stat-v" style="color: var(--success);">
