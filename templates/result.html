@@ -169,6 +169,75 @@
 
     /* CTA row */
     .cta-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem; }
+
+    /* ── Print Styles ── */
+    @media print {
+        body {
+            background: white !important;
+            color: black !important;
+            font-size: 12pt !important;
+        }
+        /* Hide navbar, back to dashboard button, timeline filters, and CTA print buttons */
+        nav, .navbar, .cta-row, #semTimeline, .sem-timeline, .btn, button, footer {
+            display: none !important;
+        }
+        .results-page {
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .cgpa-hero {
+            background: #f3f4f6 !important;
+            color: #111827 !important;
+            border: 1px solid #d1d5db !important;
+            box-shadow: none !important;
+            padding: 1.5rem !important;
+            margin-bottom: 2rem !important;
+            page-break-inside: avoid;
+        }
+        .cgpa-hero .cgpa-number {
+            color: #111827 !important;
+        }
+        .cgpa-stat-pill {
+            background: white !important;
+            border: 1px solid #d1d5db !important;
+            color: #111827 !important;
+        }
+        .sem-block {
+            border: 1px solid #9ca3af !important;
+            box-shadow: none !important;
+            margin-bottom: 2.5rem !important;
+            background: white !important;
+            page-break-inside: avoid;
+        }
+        .sem-block-head {
+            background: #f9fafb !important;
+            border-bottom: 1px solid #d1d5db !important;
+        }
+        .subject-table th {
+            background: #f3f4f6 !important;
+            color: #111827 !important;
+            border-bottom: 1px solid #d1d5db !important;
+        }
+        .subject-table td {
+            border-bottom: 1px solid #e5e7eb !important;
+        }
+        .marks-bar-outer {
+            display: none !important;
+        }
+        .cgpa-track {
+            border: 1px solid #d1d5db !important;
+            background: white !important;
+            page-break-inside: avoid;
+        }
+        .progress-bar-wrap {
+            border: 1px solid #d1d5db !important;
+            background: #f3f4f6 !important;
+        }
+        .progress-bar-fill {
+            background: #4f46e5 !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -372,8 +441,12 @@
     <div class="cta-row">
         <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary"
            style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
-            <i class="fas fa-plus"></i> Calculate Next Semester
+           <i class="fas fa-plus"></i> Calculate Next Semester
         </a>
+        <button onclick="window.print()" class="btn btn-primary"
+                style="background: linear-gradient(135deg, #10b981, #059669); border: none;">
+            <i class="fas fa-print"></i> Print Report
+        </button>
     </div>
 
     {% endif %}
