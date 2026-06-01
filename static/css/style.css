@@ -878,3 +878,376 @@ footer i {
         padding: 1.5rem;
     }
 }
+
+/* Premium Mobile Enhancements for Dashboards & Results Sheets */
+@media (max-width: 768px) {
+    /* Student Details / Profile Bar */
+    .student-profile-bar {
+        padding: 1.5rem !important;
+        flex-direction: column !important;
+        text-align: center !important;
+        align-items: center !important;
+        gap: 1.25rem !important;
+        border-radius: 18px !important;
+    }
+
+    .profile-info-group {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+        align-items: center !important;
+    }
+
+    .profile-name {
+        font-size: 1.3rem !important;
+    }
+
+    .profile-actions {
+        width: 100% !important;
+        flex-direction: column !important;
+        gap: 0.5rem !important;
+    }
+
+    .profile-actions .btn, 
+    .profile-actions a {
+        width: 100% !important;
+        justify-content: center !important;
+        font-size: 0.85rem !important;
+        padding: 0.7rem 1rem !important;
+    }
+
+    /* CGPA Banner Grid */
+    .cgpa-banner {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem !important;
+    }
+
+    .cgpa-stat {
+        padding: 1rem !important;
+        border-radius: 12px !important;
+    }
+
+    .cgpa-stat .stat-v {
+        font-size: 1.8rem !important;
+    }
+
+    /* CGPA Hero Section */
+    .cgpa-hero {
+        padding: 1.5rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        border-radius: 18px !important;
+        gap: 1.5rem !important;
+        box-shadow: 0 10px 30px rgba(79,70,229,0.15) !important;
+    }
+
+    .cgpa-number {
+        font-size: 3.8rem !important;
+        text-align: center !important;
+    }
+
+    .cgpa-label, 
+    .cgpa-sub {
+        text-align: center !important;
+    }
+
+    .cgpa-stats {
+        justify-content: center !important;
+        gap: 0.75rem !important;
+    }
+
+    .cgpa-stat-pill {
+        flex: 1 1 calc(50% - 0.75rem) !important;
+        padding: 0.75rem !important;
+        border-radius: 12px !important;
+        min-width: 80px !important;
+    }
+
+    .cgpa-stat-pill .v {
+        font-size: 1.35rem !important;
+    }
+
+    /* Semester Blocks & Tables */
+    .sem-block-head {
+        padding: 1.25rem !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+    }
+
+    .sem-block-head div:last-child {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
+    .sgpa-badge {
+        align-items: flex-end !important;
+    }
+
+    .sgpa-badge .val {
+        font-size: 2rem !important;
+    }
+
+    .subject-table th, 
+    .subject-table td {
+        padding: 0.75rem 1rem !important;
+        font-size: 0.82rem !important;
+    }
+
+    .marks-num {
+        font-size: 0.8rem !important;
+    }
+
+    /* Timeline Scroll Indicators */
+    .sem-timeline {
+        padding-left: 0.25rem !important;
+        padding-right: 0.25rem !important;
+    }
+
+    /* CTA spacing */
+    .cta-row {
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 0.75rem !important;
+    }
+
+    .cta-row .btn, 
+    .cta-row a {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .cgpa-banner {
+        grid-template-columns: 1fr !important;
+    }
+
+    .cgpa-number {
+        font-size: 3.2rem !important;
+    }
+    
+    .cgpa-stat-pill {
+        flex: 1 1 100% !important;
+    }
+}
+
+/* Touch-optimized target adjustments for mobile semester results PDF actions */
+@media (max-width: 768px) {
+    .sem-block-head div:last-child a.btn,
+    .sem-block-header div:last-child a.btn {
+        padding: 0.5rem 0.9rem !important;
+        font-size: 0.8rem !important;
+        min-height: 38px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 10px !important;
+    }
+}
+
+/* ==========================================
+   GLOBAL RESPONSIVE BREAKPOINTS & LAYOUT OPTIMIZATIONS
+   ========================================== */
+
+/* Base Container Adjustment */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2.5rem 3rem;
+}
+
+@media (max-width: 1024px) {
+    .container {
+        padding: 0 1.5rem 2.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Global Container Padding */
+    .container {
+        padding: 0 1rem 2rem !important;
+    }
+
+    /* Headings Scalings */
+    h1 {
+        font-size: 2rem !important;
+        margin: 1.5rem 0 !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+    }
+
+    /* Navbar Responsiveness - Compact Modern Horizontal Topbar */
+    .glass-nav {
+        padding: 0.75rem 1rem !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        gap: 0.5rem !important;
+        width: 100% !important;
+        position: sticky !important;
+        top: 0 !important;
+        height: auto !important;
+    }
+
+    .logo {
+        font-size: 1.15rem !important;
+        flex-shrink: 0 !important;
+    }
+
+    .nav-links {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 0.25rem !important;
+        max-width: 75% !important;
+        overflow: visible !important;
+    }
+
+    .nav-item {
+        font-size: 0 !important; /* Hide plain text node beautifully */
+        padding: 0.5rem 0.6rem !important;
+        border-radius: 10px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 36px !important;
+        height: 36px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .nav-item i {
+        font-size: 1.15rem !important;
+        margin-right: 0 !important;
+    }
+
+    .nav-item::before {
+        display: none !important; /* Hide the desk underline bar */
+    }
+
+    .user-profile {
+        padding: 0 !important;
+        background: none !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .user-profile span {
+        display: none !important; /* Hide name text label */
+    }
+
+    .user-profile img {
+        width: 32px !important;
+        height: 32px !important;
+        border: 2px solid var(--primary) !important;
+    }
+
+    .btn-logout {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 36px !important;
+        height: 36px !important;
+        border-radius: 10px !important;
+        background: rgba(239, 68, 68, 0.1) !important;
+        color: var(--danger) !important;
+    }
+
+    /* Forms & Inputs Sizing on Touch Screens */
+    .form-group {
+        margin-bottom: 1.2rem !important;
+    }
+
+    input, select, textarea {
+        padding: 0.8rem 1rem !important;
+        font-size: 0.95rem !important;
+        border-radius: 10px !important;
+    }
+
+    /* Form Grids Stacking */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Responsive Cards */
+    .card {
+        padding: 1.25rem !important;
+        border-radius: 16px !important;
+    }
+
+    /* Dashboard Header & actions */
+    .dashboard-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem !important;
+        text-align: center !important;
+    }
+
+    /* Table Responsiveness - Smooth Horizontal Scrolling */
+    .table-container, 
+    .results-table-wrap {
+        border-radius: 14px !important;
+        margin-bottom: 1.5rem !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
+
+    th, td {
+        padding: 0.8rem 1rem !important;
+        font-size: 0.85rem !important;
+    }
+
+    /* Sort indicators padding */
+    .sortable-table th {
+        font-size: 0.78rem !important;
+    }
+
+    /* Actions Stack on Registry Views */
+    .action-buttons {
+        gap: 0.35rem !important;
+    }
+
+    .btn-icon {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 8px !important;
+        padding: 0.4rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Small Phone Spacings */
+    .container {
+        padding: 0 0.75rem 1.5rem !important;
+    }
+
+    h1 {
+        font-size: 1.75rem !important;
+    }
+
+    .glass-nav {
+        border-radius: 0 !important;
+    }
+
+    .nav-links {
+        display: flex !important;
+        max-width: 60% !important;
+    }
+
+    .btn {
+        padding: 0.75rem 1.2rem !important;
+        font-size: 0.88rem !important;
+        border-radius: 10px !important;
+    }
+
+    /* Flash Messages Adjustments */
+    .flash-card {
+        padding: 0.75rem 1rem !important;
+        font-size: 0.85rem !important;
+        border-radius: 10px !important;
+    }
+}

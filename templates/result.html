@@ -306,9 +306,9 @@
     <!-- ── Semester Filter Pills ── -->
     {% if sem_count > 1 %}
     <div class="sem-timeline" id="semTimeline">
-        <div class="sem-pill active" onclick="filterSem('all', this)">All Semesters</div>
+        <div class="sem-pill active" onclick="filterSem('all', null, this)">All Semesters</div>
         {% for pid, data in grouped_results.items() %}
-        <div class="sem-pill" onclick="filterSem('sem-{{ pid }}', this)">
+        <div class="sem-pill" onclick="filterSem('sem-{{ pid }}', '{{ pid }}', this)">
             {{ data.year }} — Sem {{ data.semester }}
         </div>
         {% endfor %}
@@ -451,7 +451,7 @@
            style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
            <i class="fas fa-plus"></i> Calculate Next Semester
         </a>
-        <a href="{{ url_for('download_pdf') }}" class="btn btn-primary"
+        <a href="{{ url_for('download_pdf') }}" class="btn btn-primary" id="mainDownloadBtn"
            style="background: linear-gradient(135deg, #10b981, #059669); border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
             <i class="fas fa-file-pdf"></i> Download PDF
         </a>
@@ -461,7 +461,7 @@
 </div>
 
 <script>
-    function filterSem(semId, el) {
+    function filterSem(semId, presetId, el) {
         // Update pill states
         document.querySelectorAll('.sem-pill').forEach(p => p.classList.remove('active'));
         el.classList.add('active');
@@ -473,6 +473,17 @@
             blocks.forEach(b => {
                 b.style.display = (b.id === semId) ? '' : 'none';
             });
+        }
+
+        // Dynamically update the main download PDF URL to match the selected semester filter tab
+        const downloadBtn = document.getElementById('mainDownloadBtn');
+        if (downloadBtn) {
+            const baseUrl = "{{ url_for('download_pdf') }}";
+            if (presetId) {
+                downloadBtn.href = `${baseUrl}?preset_id=${presetId}`;
+            } else {
+                downloadBtn.href = baseUrl;
+            }
         }
     }
 
