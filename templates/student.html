@@ -1,95 +1,229 @@
 {% extends 'base.html' %}
 
-{% block title %}Student Dashboard{% endblock %}
+{% block title %}Calculate CGPA{% endblock %}
+
+{% block head %}
+<style>
+    .student-hero {
+        text-align: center;
+        padding: 2rem 1rem 1rem;
+        margin-bottom: 2rem;
+    }
+    .student-hero h1 {
+        font-size: 2.4rem;
+        margin-bottom: 0.5rem;
+    }
+    .class-selector-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        backdrop-filter: blur(16px);
+        max-width: 860px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+    }
+    .class-selector-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+    }
+    .step-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(79,70,229,0.08);
+        color: var(--primary);
+        padding: 0.4rem 1rem;
+        border-radius: 30px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 1.25rem;
+    }
+    .subject-entry {
+        background: rgba(255,255,255,0.55);
+        border: 1.5px solid var(--glass-border);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .subject-entry:hover {
+        border-color: rgba(79,70,229,0.3);
+        box-shadow: 0 6px 24px rgba(79,70,229,0.08);
+    }
+    .subject-entry::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, var(--primary), var(--secondary));
+        border-radius: 4px 0 0 4px;
+    }
+    .subject-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .subject-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+    .credit-badge {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 0.3rem 0.85rem;
+        border-radius: 30px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+    .marks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 0.85rem;
+    }
+    .marks-grid label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
+    .marks-grid input { padding: 0.7rem 1rem; font-size: 0.95rem; border-radius: 10px; }
+    .action-strip {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--glass-border);
+    }
+    .action-strip .btn { font-size: 1rem; padding: 1rem 2rem; }
+
+    /* Live CGPA estimator */
+    .live-estimator {
+        background: rgba(79,70,229,0.06);
+        border: 1.5px solid rgba(79,70,229,0.15);
+        border-radius: 14px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .live-estimator .label { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
+    .live-estimator .value { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="padding-top: 2rem; max-width: 800px; margin: 0 auto;">
-
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: var(--text-main);">Calculate Your CGPA</h1>
-        <p style="color: var(--text-muted);">Select your class details to proceed.</p>
+<div style="padding-top: 1rem; max-width: 860px; margin: 0 auto;">
+    <div class="student-hero">
+        <h1>Calculate Your SGPA</h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">Select your class, enter marks, and get instant grade results.</p>
     </div>
 
-    <div class="glass card" style="padding: 2rem;">
+    <div class="class-selector-card">
         <form method="post">
-            <input type="hidden" name="action"
-                value="{% if subjects %}calculate_cgpa{% else %}load_subjects{% endif %}">
+            <input type="hidden" name="action" value="{% if subjects %}calculate_cgpa{% else %}load_subjects{% endif %}">
 
-            <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label>Select Your Class</label>
-                <select name="preset_id" class="form-control" required {% if subjects %}readonly
-                    style="pointer-events: none; opacity: 0.7;" {% endif %}>
-                    <option value="" disabled {% if not selected_preset %}selected{% endif %}>-- Select Class --
-                    </option>
+            <!-- Step 1: Class Selection -->
+            <div class="step-badge"><i class="fas fa-layer-group"></i> Step 1 — Select Your Class</div>
+            <div class="form-group" style="margin-bottom: {% if subjects %}0{% else %}1.5rem{% endif %};">
+                <label>Your Class Preset</label>
+                <select name="preset_id" class="form-control" required {% if subjects %}disabled style="pointer-events: none; opacity: 0.7;"{% endif %}>
+                    <option value="" disabled {% if not selected_preset %}selected{% endif %}>— Select Class —</option>
                     {% for preset in presets %}
-                    <option value="{{ preset[0] }}" {% if selected_preset and selected_preset[0]==preset[0] %}selected{%
-                        endif %}>
-                        {{ preset[3] }} &bull; {{ preset[4] }} Year &bull; Sem {{ preset[6] }} &bull; Div {{ preset[5]
-                        }} ({{ preset[1] }})
+                    <option value="{{ preset[0] }}" {% if selected_preset and selected_preset[0]==preset[0] %}selected{% endif %}>
+                        {{ preset[3] or 'General' }} &bull; {{ preset[4] }} Year &bull; Sem {{ preset[6] }} &bull; Div {{ preset[5] }} ({{ preset[1] }})
                     </option>
                     {% endfor %}
                 </select>
                 {% if not subjects %}
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">
-                    Don't see your class? Ask your admin to create a preset.
+                <p style="font-size: 0.83rem; color: var(--text-dim); margin-top: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Don't see your class? Contact your administrator.
                 </p>
                 {% endif %}
             </div>
 
             {% if not subjects %}
-            <button type="submit" class="btn btn-primary" style="width: 100%;">
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1.1rem; font-size: 1rem; margin-top: 1.5rem;">
                 Load Subjects <i class="fas fa-arrow-right"></i>
             </button>
             {% else %}
 
-            <div style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 style="margin: 0; color: var(--text-main);">Enter Marks</h3>
+            <!-- Divider -->
+            <div style="margin: 2rem 0; border-top: 1px solid var(--glass-border);"></div>
+
+            <!-- Step 2: Enter Marks -->
+            <div class="step-badge" style="margin-top: 0;"><i class="fas fa-pen"></i> Step 2 — Enter Your Marks</div>
+
+            <!-- Live Estimator -->
+            <div class="live-estimator" id="liveEstimator">
+                <div>
+                    <div class="label">Estimated SGPA</div>
+                    <div class="value" id="liveGPA">—</div>
                 </div>
+                <div style="text-align: right;">
+                    <div class="label">{{ subjects|length }} Subjects</div>
+                    <div style="font-size: 0.88rem; color: var(--text-muted); margin-top: 0.15rem;">Fill marks to estimate</div>
+                </div>
+            </div>
 
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    {% for subject in subjects %}
-                    <div class="glass" style="padding: 1.5rem; background: rgba(255,255,255,0.5);">
-                        <div
-                            style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: var(--primary);">
-                            <strong style="font-size: 1.1rem;">{{ subject[2] }}</strong>
-                            <span
-                                style="font-size: 0.9rem; background: rgba(79, 70, 229, 0.1); padding: 0.2rem 0.8rem; border-radius: 20px;">
-                                {{ subject[4] }} Credits
-                            </span>
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                {% for subject in subjects %}
+                <div class="subject-entry">
+                    <div class="subject-header">
+                        <div>
+                            <div class="subject-name">{{ subject[2] }}</div>
+                            {% if subject[3] %}
+                            <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.15rem;">{{ subject[3] }}</div>
+                            {% endif %}
                         </div>
-                        <input type="hidden" name="subjects" value="{{ subject[0] }}">
-
-                        <div
-                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-                            {% for comp in subject_components[subject[0]] %}
-                            <div class="form-group">
-                                <label style="font-size: 0.85rem; color: var(--text-light);">{{ comp[2] }} (Max: {{
-                                    comp[3] }})</label>
-                                <input type="number" step="0.01" name="marks_{{ comp[0] }}" placeholder="Obtained"
-                                    class="form-control" min="0" max="{{ comp[3] }}"
-                                    oninput="validity.valid||(value='');"
-                                    onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 46)"
-                                    value="{{ marks_map[comp[0]] if marks_map and comp[0] in marks_map else '' }}">
-                            </div>
-                            {% endfor %}
-                        </div>
+                        <span class="credit-badge">{{ subject[4] }} Cr</span>
                     </div>
-                    {% endfor %}
+                    <input type="hidden" name="subjects" value="{{ subject[0] }}">
+                    <div class="marks-grid">
+                        {% for comp in subject_components[subject[0]] %}
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>{{ comp[2] }} <span style="color: var(--text-dim);">(/ {{ comp[3] }})</span></label>
+                            <input type="number" step="0.01" name="marks_{{ comp[0] }}" placeholder="Enter marks"
+                                class="form-control" min="0" max="{{ comp[3] }}"
+                                oninput="validity.valid||(value=''); estimateLive();"
+                                onkeypress="return (event.charCode !=8 && event.charCode ==0 || (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 46)"
+                                value="{{ marks_map[comp[0]] if marks_map and comp[0] in marks_map else '' }}">
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
+                {% endfor %}
+            </div>
 
-                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-                    <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary"
-                        style="flex: 1; text-align: center; background: var(--text-dim); color: white;">
-                        Back
-                    </a>
-                    <button type="submit" class="btn btn-primary" style="flex: 2; background: var(--success);">
-                        <i class="fas fa-calculator"></i> Calculate CGPA
-                    </button>
-                </div>
+            <div class="action-strip">
+                <a href="{{ url_for('student_dashboard') }}" class="btn"
+                    style="flex: 1; background: rgba(0,0,0,0.05); color: var(--text-muted); border: 1.5px solid var(--glass-border); text-align: center;">
+                    <i class="fas fa-arrow-left"></i> Change Class
+                </a>
+                <button type="submit" class="btn btn-primary" style="flex: 3; background: linear-gradient(135deg, var(--success), #059669);">
+                    <i class="fas fa-calculator"></i> Calculate SGPA / CGPA
+                </button>
             </div>
             {% endif %}
         </form>
     </div>
 </div>
+
+<script>
+function estimateLive() {
+    // Basic client-side "estimation" - just shows engagement, real calc on server
+    const inputs = document.querySelectorAll('.subject-entry input[type="number"]');
+    let filled = 0;
+    inputs.forEach(i => { if (i.value) filled++; });
+    const total = inputs.length;
+    if (filled > 0 && total > 0) {
+        document.getElementById('liveGPA').innerText = '...';
+    } else {
+        document.getElementById('liveGPA').innerText = '—';
+    }
+}
+</script>
 {% endblock %}

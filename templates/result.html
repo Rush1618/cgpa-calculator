@@ -1,60 +1,224 @@
 {% extends 'base.html' %}
 
-{% block title %}My Results{% endblock %}
+{% block title %}My Academic Results{% endblock %}
+
+{% block head %}
+<style>
+    .results-hero {
+        text-align: center;
+        padding: 1.5rem 1rem;
+        margin-bottom: 2rem;
+    }
+    .cgpa-hero-card {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 60%, var(--accent) 100%);
+        border-radius: 24px;
+        padding: 2.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 16px 48px rgba(79,70,229,0.35);
+        max-width: 860px;
+        margin: 0 auto 2rem;
+    }
+    .cgpa-hero-card::before {
+        content: '';
+        position: absolute;
+        top: -50%; right: -20%;
+        width: 350px; height: 350px;
+        background: rgba(255,255,255,0.08);
+        border-radius: 50%;
+    }
+    .cgpa-hero-card::after {
+        content: '';
+        position: absolute;
+        bottom: -30%; left: -10%;
+        width: 250px; height: 250px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+    }
+    .cgpa-big-num {
+        font-size: 5rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        position: relative; z-index: 1;
+    }
+    .cgpa-label {
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        opacity: 0.8;
+        margin-top: 0.5rem;
+        position: relative; z-index: 1;
+    }
+    .cgpa-detail {
+        font-size: 0.9rem;
+        opacity: 0.7;
+        margin-top: 0.5rem;
+        position: relative; z-index: 1;
+    }
+
+    .semester-block {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 22px;
+        backdrop-filter: blur(16px);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        max-width: 860px;
+        margin-left: auto; margin-right: auto;
+        margin-bottom: 2rem;
+    }
+    .semester-block-header {
+        padding: 1.5rem 2rem;
+        background: linear-gradient(135deg, rgba(79,70,229,0.06) 0%, rgba(124,58,237,0.04) 100%);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .semester-title { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin: 0; }
+    .semester-subtitle { font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0; }
+    .sgpa-display-new {
+        text-align: right;
+    }
+    .sgpa-number {
+        font-size: 2.75rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--success);
+    }
+    .sgpa-tag { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); }
+
+    /* Subject table rows */
+    .subject-row { transition: background 0.2s; }
+    .subject-row:hover { background: rgba(79,70,229,0.03); }
+    .marks-progress {
+        height: 4px;
+        background: rgba(0,0,0,0.07);
+        border-radius: 10px;
+        margin-top: 4px;
+        overflow: hidden;
+    }
+    .marks-fill {
+        height: 100%;
+        border-radius: 10px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary));
+        transition: width 0.6s ease;
+    }
+    .no-results-state {
+        text-align: center;
+        padding: 5rem 2rem;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        backdrop-filter: blur(16px);
+        max-width: 560px;
+        margin: 0 auto;
+    }
+    .cta-strip {
+        max-width: 860px;
+        margin: 2rem auto 0;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="padding-top: 2rem; max-width: 900px; margin: 0 auto;">
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 style="color: var(--text-main);">Academic Performance</h1>
-        <p style="color: var(--text-muted);">Your semester-wise grade breakdown</p>
+<div style="padding-top: 1rem;">
+    <div class="results-hero">
+        <h1>Academic Performance</h1>
+        <p style="color: var(--text-muted);">Your semester-wise SGPA and subject breakdown</p>
     </div>
 
     {% if not grouped_results %}
-    <div class="glass card" style="text-align: center; padding: 3rem;">
-        <i class="fas fa-chart-bar" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-        <h3>No Results Yet</h3>
-        <p style="margin-bottom: 2rem;">Calculate your first GPA to see it here!</p>
-        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">Calculate Now</a>
+    <div class="no-results-state">
+        <i class="fas fa-chart-bar" style="font-size: 3.5rem; color: var(--text-dim); margin-bottom: 1.25rem; display: block;"></i>
+        <h3 style="color: var(--text-muted);">No Results Yet</h3>
+        <p style="color: var(--text-dim); margin: 0.5rem 0 2rem;">Calculate your first semester GPA to see your academic report here.</p>
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary" style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
+            <i class="fas fa-calculator"></i> Calculate Now
+        </a>
     </div>
     {% else %}
 
+    {% set total_sems = grouped_results | length %}
+
+    <!-- CGPA Hero Card (only meaningful if multiple sems) -->
+    {% if total_sems > 1 %}
+    <div class="cgpa-hero-card">
+        <div class="cgpa-label">Cumulative GPA</div>
+        <div class="cgpa-big-num">
+            {% set sgpa_sum = namespace(v=0) %}
+            {% for pid, data in grouped_results.items() %}{% set sgpa_sum.v = sgpa_sum.v + data.sgpa %}{% endfor %}
+            {{ "%.2f"|format(sgpa_sum.v / total_sems) }}
+        </div>
+        <div class="cgpa-detail">Across {{ total_sems }} semesters</div>
+    </div>
+    {% endif %}
+
+    <!-- Per-Semester Blocks -->
     {% for preset_id, data in grouped_results.items() %}
-    <div class="glass card result-card">
-        <div class="semester-header">
+    <div class="semester-block">
+        <div class="semester-block-header">
             <div>
-                <h2 style="margin: 0; color: var(--primary);">{{ data.course }}</h2>
-                <p style="margin: 0; color: var(--text-muted);">{{ data.year }} Year &bull; Semester {{ data.semester }}
-                </p>
+                <div class="semester-title">{{ data.course }} — {{ data.year }} Year</div>
+                <div class="semester-subtitle">
+                    <i class="fas fa-calendar-alt"></i> Semester {{ data.semester }}
+                    &bull; {{ data.subjects | length }} Subjects
+                </div>
             </div>
-            <div class="sgpa-display">
-                <span class="sgpa-label">SGPA</span>
-                <span class="sgpa-value">{{ data.sgpa }}</span>
+            <div class="sgpa-display-new">
+                <div class="sgpa-tag">SGPA</div>
+                <div class="sgpa-number" style="color: {% if data.sgpa >= 8 %}var(--success){% elif data.sgpa >= 6 %}var(--info){% elif data.sgpa >= 4 %}var(--warning){% else %}var(--danger){% endif %};">
+                    {{ data.sgpa }}
+                </div>
             </div>
         </div>
 
+        <!-- Subjects Table -->
         <div style="overflow-x: auto;">
-            <table class="sortable-table" style="width: 100%; border-collapse: collapse; min-width: 500px;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 520px;">
                 <thead>
-                    <tr style="border-bottom: 2px solid var(--glass-border); text-align: left;">
-                        <th style="padding: 1rem; color: var(--text-muted);">Subject</th>
-                        <th style="padding: 1rem; color: var(--text-muted);">Marks</th>
-                        <th style="padding: 1rem; color: var(--text-muted);">%</th>
-                        <th style="padding: 1rem; color: var(--text-muted);">Grade</th>
-                        <th style="padding: 1rem; color: var(--text-muted);">Credits</th>
+                    <tr style="border-bottom: 2px solid var(--glass-border);">
+                        <th style="padding: 1rem 1.5rem; text-align: left; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; background: rgba(79,70,229,0.03);">Subject</th>
+                        <th style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; background: rgba(79,70,229,0.03);">Marks</th>
+                        <th style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; background: rgba(79,70,229,0.03);">%</th>
+                        <th style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; background: rgba(79,70,229,0.03);">Grade</th>
+                        <th style="padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; background: rgba(79,70,229,0.03);">Credits</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for subject in data.subjects %}
-                    <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
-                        <td style="padding: 1rem; font-weight: 500;">{{ subject.name }}</td>
-                        <td style="padding: 1rem;">{{ subject.obtained }} / {{ subject.max }}</td>
-                        <td style="padding: 1rem;">{{ "%.2f"|format(subject.percentage) }}%</td>
-                        <td style="padding: 1rem;">
-                            <span class="grade-badge {{ subject.grade }}">
-                                {{ subject.grade }}
-                            </span>
+                    <tr class="subject-row" style="border-bottom: 1px solid var(--glass-border);">
+                        <td style="padding: 1.1rem 1.5rem;">
+                            <div style="font-weight: 600; color: var(--text-main); font-size: 0.96rem;">{{ subject.name }}</div>
+                            {% if subject.code %}
+                            <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.15rem;">{{ subject.code }}</div>
+                            {% endif %}
                         </td>
-                        <td style="padding: 1rem;">{{ subject.credits }}</td>
+                        <td style="padding: 1.1rem; text-align: center;">
+                            <div style="font-weight: 600; color: var(--text-light);">{{ subject.obtained | int }} / {{ subject.max | int }}</div>
+                            <div class="marks-progress" style="width: 80px; margin: 4px auto 0;">
+                                <div class="marks-fill" style="width: {{ subject.percentage | round | int }}%;"></div>
+                            </div>
+                        </td>
+                        <td style="padding: 1.1rem; text-align: center; font-weight: 600; color: var(--text-muted);">
+                            {{ "%.1f"|format(subject.percentage) }}%
+                        </td>
+                        <td style="padding: 1.1rem; text-align: center;">
+                            <span class="grade-badge {{ subject.grade }}">{{ subject.grade }}</span>
+                        </td>
+                        <td style="padding: 1.1rem; text-align: center; font-weight: 600; color: var(--text-light);">
+                            {{ subject.credits }}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -63,13 +227,14 @@
     </div>
     {% endfor %}
 
-    <div style="text-align: center; margin-top: 2rem;">
+    <div class="cta-strip">
         <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Calculate Another Semester
+            <i class="fas fa-plus"></i> Add Another Semester
+        </a>
+        <a href="{{ url_for('view_result') }}" class="btn" style="background: rgba(0,0,0,0.05); border: 1.5px solid var(--glass-border); color: var(--text-muted);">
+            <i class="fas fa-sync"></i> Refresh
         </a>
     </div>
-
     {% endif %}
-
 </div>
 {% endblock %}

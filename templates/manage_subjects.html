@@ -1,116 +1,287 @@
 {% extends 'base.html' %}
 
-{% block title %}Manage Subjects{% endblock %}
+{% block title %}Manage Subjects — {{ preset[3] or 'General' }}{% endblock %}
+
+{% block head %}
+<style>
+    .page-back {
+        display: inline-flex; align-items: center; gap: 0.5rem;
+        color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;
+        transition: color 0.2s;
+    }
+    .page-back:hover { color: var(--primary); }
+
+    .preset-banner {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: 20px;
+        padding: 1.75rem 2rem;
+        color: white;
+        margin-bottom: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .preset-banner::before {
+        content: '';
+        position: absolute; top: -40%; right: -5%;
+        width: 280px; height: 280px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 50%;
+    }
+    .banner-chips { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .banner-chip {
+        background: rgba(255,255,255,0.15);
+        padding: 0.3rem 0.85rem;
+        border-radius: 30px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+    .credit-counter {
+        background: rgba(255,255,255,0.18);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 16px;
+        padding: 1rem 1.5rem;
+        text-align: center;
+        position: relative; z-index: 1;
+        min-width: 120px;
+    }
+    .credit-num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+    .credit-lbl { font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
+
+    .main-layout {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 2rem;
+        align-items: start;
+    }
+    @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } }
+
+    /* Subject Cards */
+    .subject-card-admin {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .subject-card-admin::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, var(--primary), var(--secondary));
+        border-radius: 4px 0 0 4px;
+    }
+    .subject-card-admin:hover {
+        box-shadow: 0 8px 32px rgba(79,70,229,0.12);
+        border-color: rgba(79,70,229,0.25);
+        transform: translateX(4px);
+    }
+    .subject-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    .subject-actions { display: flex; gap: 0.4rem; }
+    .comp-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; }
+    .comp-badge {
+        background: rgba(79,70,229,0.07);
+        color: var(--primary);
+        border: 1px solid rgba(79,70,229,0.15);
+        padding: 0.25rem 0.65rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .credits-badge-sm {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        padding: 0.3rem 0.85rem;
+        border-radius: 30px;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    /* Add Subject Form Card */
+    .add-form-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(16px);
+        position: sticky;
+        top: 90px;
+    }
+    .add-form-card h2 { margin-top: 0; font-size: 1.2rem; }
+    .comp-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+    .comp-item {
+        border: 1.5px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 0.6rem 0.75rem;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .comp-item:has(input[type="checkbox"]:checked) {
+        border-color: var(--primary);
+        background: rgba(79,70,229,0.05);
+    }
+    .comp-item label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 0; }
+    .comp-item input[type="number"] { margin-top: 0.4rem; padding: 0.45rem 0.65rem; font-size: 0.85rem; }
+
+    .empty-subjects {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--glass-bg);
+        border: 1.5px dashed var(--glass-border);
+        border-radius: 18px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div style="padding-top: 2rem;">
-    <div style="margin-bottom: 2rem;">
-        <a href="{{ url_for('admin_dashboard') }}"
-            style="color: var(--text-muted); display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
-            <i class="fas fa-arrow-left"></i> Back to Dashboard
-        </a>
-        <h1>Manage Subjects</h1>
-        <p style="text-align: center; color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem;">
-            {{ preset[3] or 'General' }} &bull; {{ preset[4] }} Year &bull; Sem {{ preset[6] }} &bull; Div {{ preset[5] }} &bull; AY {{ preset[1] }} &bull; <span style="font-weight: 600; color: var(--primary);">Total Credits: {{ total_credits }}</span>
-        </p>
+    <a href="{{ url_for('admin_dashboard') }}" class="page-back">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <!-- Preset Banner -->
+    <div class="preset-banner">
+        <div style="position: relative; z-index: 1;">
+            <h2 style="margin: 0; font-size: 1.6rem; color: white;">{{ preset[3] or 'General' }}</h2>
+            <div class="banner-chips">
+                <span class="banner-chip">{{ preset[2] }}</span>
+                <span class="banner-chip">{{ preset[4] }} Year</span>
+                <span class="banner-chip">Semester {{ preset[6] }}</span>
+                <span class="banner-chip">Division {{ preset[5] }}</span>
+                <span class="banner-chip">AY {{ preset[1] }}</span>
+            </div>
+        </div>
+        <div class="credit-counter">
+            <div class="credit-num">{{ total_credits }}</div>
+            <div class="credit-lbl">Total Credits</div>
+        </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
-        <!-- Subjects List -->
+    <div class="main-layout">
+        <!-- Left: Subject List -->
         <div>
-            <h2 style="margin-top: 0;">Existing Subjects</h2>
-            {% for subject in subjects %}
-            <div class="glass card" style="margin-bottom: 1rem; padding: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 1.3rem;">{{ subject[2] }}</h3>
-                        <p style="color: var(--text-muted); font-size: 0.9rem;">Code: {{ subject[3] }} &bull; Credits:
-                            {{ subject[4] }}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">
+                    <i class="fas fa-book" style="color: var(--primary);"></i> Subjects ({{ subjects|length }})
+                </h2>
+            </div>
 
-                        <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                            {% for comp in subject_components[subject[0]] %}
-                            <span
-                                style="font-size: 0.8rem; background: rgba(255,255,255,0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
-                                {{ comp[2] }}: {{ comp[3] }}
-                            </span>
-                            {% endfor %}
+            {% for subject in subjects %}
+            <div class="subject-card-admin">
+                <div class="subject-top">
+                    <div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-main);">{{ subject[2] }}</div>
+                        {% if subject[3] %}
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">Code: {{ subject[3] }}</div>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="credits-badge-sm">{{ subject[4] }} Cr</span>
+                        <div class="subject-actions">
+                            <a href="{{ url_for('edit_subject', subject_id=subject[0], preset_id=preset[0]) }}"
+                                class="btn-icon" title="Edit Subject" style="background: rgba(79,70,229,0.08); color: var(--primary); border-color: rgba(79,70,229,0.2);">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ url_for('delete_subject', subject_id=subject[0]) }}" class="btn-icon delete"
+                                onclick="return confirm('Delete this subject? All associated marks will also be removed.')"
+                                title="Delete Subject" style="background: rgba(239,68,68,0.06); color: var(--danger); border-color: rgba(239,68,68,0.2);">
+                                <i class="fas fa-trash"></i>
+                            </a>
                         </div>
                     </div>
-                    <div style="display: flex;">
-                        <a href="{{ url_for('edit_subject', subject_id=subject[0], preset_id=preset[0]) }}" class="btn btn-secondary"
-                            style="padding: 0.5rem; margin-right: 0.5rem;" title="Edit Subject">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{{ url_for('delete_subject', subject_id=subject[0]) }}" class="btn btn-danger"
-                            onclick="return confirm('Are you sure? This will delete all marks associated with this subject.');"
-                            style="padding: 0.5rem;" title="Delete Subject">
-                            <i class="fas fa-trash"></i>
-                        </a>
-                    </div>
+                </div>
+                <div class="comp-badges">
+                    {% for comp in subject_components[subject[0]] %}
+                    <span class="comp-badge">{{ comp[2] }}: {{ comp[3] }}</span>
+                    {% else %}
+                    <span style="font-size: 0.8rem; color: var(--text-dim); font-style: italic;">No components defined</span>
+                    {% endfor %}
                 </div>
             </div>
             {% else %}
-            <p style="color: var(--text-muted); font-style: italic;">No subjects added yet.</p>
+            <div class="empty-subjects">
+                <i class="fas fa-book-open" style="font-size: 2.5rem; color: var(--text-dim); margin-bottom: 1rem;"></i>
+                <h3 style="color: var(--text-muted);">No Subjects Yet</h3>
+                <p style="color: var(--text-dim);">Use the form on the right to add the first subject.</p>
+            </div>
             {% endfor %}
         </div>
 
-        <!-- Add Subject Form -->
-        <div class="glass card" style="height: fit-content;">
-            <h2 style="margin-top: 0; margin-bottom: 1.5rem;">Add Subject</h2>
+        <!-- Right: Add Subject Form -->
+        <div class="add-form-card">
+            <h2><i class="fas fa-plus-circle" style="color: var(--primary);"></i> Add Subject</h2>
             <form action="{{ url_for('add_subject', preset_id=preset[0]) }}" method="post">
                 <div class="form-group">
                     <label>Subject Name</label>
-                    <input type="text" name="name" required>
+                    <input type="text" name="name" required placeholder="e.g. Data Structures">
                 </div>
                 <div class="form-group">
                     <label>Subject Code</label>
-                    <input type="text" name="code">
+                    <input type="text" name="code" placeholder="e.g. CS301 (optional)">
                 </div>
                 <div class="form-group">
                     <label>Credits</label>
-                    <input type="number" name="credits" required>
+                    <input type="number" name="credits" required placeholder="e.g. 4" min="1" max="12">
                 </div>
 
-                <div style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
-                    <label style="color: var(--primary); font-weight: 500; margin-bottom: 1rem;">Assessment Components
-                        (Max Marks)</label>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <label><input type="checkbox" name="components" value="IAT1"
-                                    onclick="toggleInput(this, 'max_marks_IAT1')"> IAT 1</label>
-                            <input type="number" name="max_marks_IAT1" id="max_marks_IAT1" placeholder="Max" disabled
-                                style="padding: 0.4rem;">
+                <div style="border-top: 1px solid var(--glass-border); padding-top: 1.25rem; margin-top: 0.5rem;">
+                    <label style="color: var(--primary); font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 0.75rem;">
+                        <i class="fas fa-tasks"></i> Assessment Components
+                    </label>
+                    <div class="comp-grid">
+                        <div class="comp-item">
+                            <label>
+                                <input type="checkbox" name="components" value="IAT1" onclick="toggleInput(this, 'max_marks_IAT1')"> IAT 1
+                            </label>
+                            <input type="number" name="max_marks_IAT1" id="max_marks_IAT1" placeholder="Max Marks" disabled>
                         </div>
-                        <div>
-                            <label><input type="checkbox" name="components" value="IAT2"
-                                    onclick="toggleInput(this, 'max_marks_IAT2')"> IAT 2</label>
-                            <input type="number" name="max_marks_IAT2" id="max_marks_IAT2" placeholder="Max" disabled
-                                style="padding: 0.4rem;">
+                        <div class="comp-item">
+                            <label>
+                                <input type="checkbox" name="components" value="IAT2" onclick="toggleInput(this, 'max_marks_IAT2')"> IAT 2
+                            </label>
+                            <input type="number" name="max_marks_IAT2" id="max_marks_IAT2" placeholder="Max Marks" disabled>
                         </div>
-                        <div>
-                            <label><input type="checkbox" name="components" value="EndSem"
-                                    onclick="toggleInput(this, 'max_marks_EndSem')"> End Sem</label>
-                            <input type="number" name="max_marks_EndSem" id="max_marks_EndSem" placeholder="Max"
-                                disabled style="padding: 0.4rem;">
+                        <div class="comp-item">
+                            <label>
+                                <input type="checkbox" name="components" value="EndSem" onclick="toggleInput(this, 'max_marks_EndSem')"> End Sem
+                            </label>
+                            <input type="number" name="max_marks_EndSem" id="max_marks_EndSem" placeholder="Max Marks" disabled>
                         </div>
-                        <div>
-                            <label><input type="checkbox" name="components" value="Practical/Oral"
-                                    onclick="toggleInput(this, 'max_marks_Practical/Oral')"> Practical/Oral</label>
-                            <input type="number" name="max_marks_Practical/Oral" id="max_marks_Practical/Oral"
-                                placeholder="Max" disabled style="padding: 0.4rem;">
+                        <div class="comp-item">
+                            <label>
+                                <input type="checkbox" name="components" value="Practical/Oral" onclick="toggleInput(this, 'max_marks_PracticalOral')"> Practical/Oral
+                            </label>
+                            <input type="number" name="max_marks_Practical/Oral" id="max_marks_PracticalOral" placeholder="Max Marks" disabled>
                         </div>
-                        <div>
-                            <label><input type="checkbox" name="components" value="TermWork"
-                                    onclick="toggleInput(this, 'max_marks_TermWork')"> Term Work</label>
-                            <input type="number" name="max_marks_TermWork" id="max_marks_TermWork" placeholder="Max"
-                                disabled style="padding: 0.4rem;">
+                        <div class="comp-item" style="grid-column: 1 / -1;">
+                            <label>
+                                <input type="checkbox" name="components" value="TermWork" onclick="toggleInput(this, 'max_marks_TermWork')"> Term Work
+                            </label>
+                            <input type="number" name="max_marks_TermWork" id="max_marks_TermWork" placeholder="Max Marks" disabled>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;">Add
-                    Subject</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 0.95rem;">
+                    <i class="fas fa-plus"></i> Add Subject
+                </button>
             </form>
         </div>
     </div>
@@ -121,6 +292,7 @@
         const input = document.getElementById(inputId);
         input.disabled = !checkbox.checked;
         if (!checkbox.checked) input.value = '';
+        if (checkbox.checked) { input.focus(); }
     }
 </script>
 {% endblock %}

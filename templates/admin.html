@@ -2,22 +2,193 @@
 
 {% block title %}Admin Dashboard{% endblock %}
 
+{% block head %}
+<style>
+    .preset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 1.5rem;
+    }
+    .preset-card {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 1.75rem;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .preset-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(79, 70, 229, 0.04) 0%, transparent 60%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .preset-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(79, 70, 229, 0.18); }
+    .preset-card:hover::before { opacity: 1; }
+    .preset-tag {
+        position: absolute;
+        top: 0; right: 0;
+        padding: 0.4rem 1rem;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 0 20px 0 14px;
+        letter-spacing: 0.05em;
+    }
+    .preset-info-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    .info-chip {
+        background: rgba(79, 70, 229, 0.08);
+        color: var(--primary);
+        padding: 0.25rem 0.75rem;
+        border-radius: 30px;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+    .info-chip.sem { background: rgba(16, 185, 129, 0.08); color: var(--success); }
+    .info-chip.div { background: rgba(245, 158, 11, 0.08); color: var(--warning); }
+    .info-chip.credits { background: rgba(6, 182, 212, 0.08); color: var(--info); }
+    .preset-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: auto; }
+    .preset-actions-row { display: flex; gap: 0.5rem; }
+
+    /* Stats Bar */
+    .stats-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-pill {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1.1rem 1.4rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .stat-icon {
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+    .stat-text-val { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .stat-text-lbl { font-size: 0.73rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Search */
+    .search-bar {
+        background: var(--glass-bg);
+        border: 1.5px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1rem 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+    .search-bar input, .search-bar select {
+        border: 1.5px solid var(--glass-border);
+        border-radius: 10px;
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+    }
+    .search-bar .search-input { flex: 1; min-width: 200px; }
+
+    /* Empty state */
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 5rem 2rem;
+        background: var(--glass-bg);
+        border: 1px dashed var(--glass-border);
+        border-radius: 20px;
+    }
+
+    /* Modal improvements */
+    .modal-overlay {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        place-items: center;
+        display: none;
+    }
+    .modal-overlay.active { display: grid; }
+    .modal-box {
+        background: white;
+        border-radius: 24px;
+        padding: 2.5rem;
+        width: 90%;
+        max-width: 520px;
+        box-shadow: 0 32px 80px rgba(0,0,0,0.2);
+        position: relative;
+        animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes modalIn {
+        from { transform: scale(0.88) translateY(20px); opacity: 0; }
+        to { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    .modal-close {
+        background: rgba(0,0,0,0.06);
+        border: none;
+        width: 36px; height: 36px;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.2s;
+    }
+    .modal-close:hover { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .modal-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem; }
+    .no-matches { display: none; text-align: center; padding: 3rem; color: var(--text-muted); grid-column: 1/-1; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div style="padding-top: 2rem;">
-    <div class="dashboard-header"
-        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1
-            style="margin: 0; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main); text-align: left;">
-            Admin Dashboard</h1>
-        <div class="actions" style="display: flex; gap: 1rem;">
-            <button class="btn btn-primary" onclick="document.getElementById('backupModal').style.display='block'"
-                style="background: var(--warning); border-color: var(--warning);">
-                <i class="fas fa-database"></i> Backup/Restore
+
+    <!-- Dashboard Header -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="margin: 0; text-align: left; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main); font-size: 2.2rem;">
+                <i class="fas fa-tachometer-alt" style="color: var(--primary);"></i> Admin Dashboard
+            </h1>
+            <p style="color: var(--text-muted); margin: 0.3rem 0 0;">Manage class presets, subjects, and academic results.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="document.getElementById('backupModal').classList.add('active')"
+                style="background: linear-gradient(135deg, var(--warning), #d97706);">
+                <i class="fas fa-database"></i> Backup / Restore
             </button>
-            <a href="{{ url_for('master_sheet') }}" class="btn btn-primary" style="background: var(--success);">
+            <a href="{{ url_for('master_sheet') }}" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), #059669);">
                 <i class="fas fa-table"></i> Master Sheet
             </a>
-            <a href="{{ url_for('promote_students') }}" class="btn btn-primary" style="background: var(--info);">
+            <a href="{{ url_for('promote_students') }}" class="btn btn-primary" style="background: linear-gradient(135deg, var(--info), #0891b2);">
                 <i class="fas fa-graduation-cap"></i> Promotions
             </a>
             <button class="btn btn-primary" onclick="openAddModal()">
@@ -26,94 +197,160 @@
         </div>
     </div>
 
-    <div class="grid">
-        {% for preset in presets %}
-        <div class="glass card">
-            <div
-                style="position: absolute; top:0; right:0; padding: 0.5rem 1rem; background: var(--primary); border-radius: 0 0 0 10px; font-size: 0.8rem;">
-                {{ preset[1] }}
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-pill">
+            <div class="stat-icon" style="background: rgba(79,70,229,0.1); color: var(--primary);">
+                <i class="fas fa-layer-group"></i>
             </div>
-            <h3>{{ preset[3] or 'General' }} - {{ preset[4] }}</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem;">
-                <i class="fas fa-layer-group"></i> Div {{ preset[5] }} &bull; Sem {{ preset[6] }}
-            </p>
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <a href="{{ url_for('manage_subjects', preset_id=preset[0]) }}" class="btn btn-primary"
-                    style="font-size: 0.9rem;">
-                    <i class="fas fa-book"></i> Subjects
+            <div>
+                <div class="stat-text-val" style="color: var(--primary);">{{ presets|length }}</div>
+                <div class="stat-text-lbl">Total Presets</div>
+            </div>
+        </div>
+        <div class="stat-pill">
+            <div class="stat-icon" style="background: rgba(16,185,129,0.1); color: var(--success);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="stat-text-val" style="color: var(--success);" id="totalStudentsCount">–</div>
+                <div class="stat-text-lbl">Students</div>
+            </div>
+        </div>
+        <div class="stat-pill">
+            <div class="stat-icon" style="background: rgba(6,182,212,0.1); color: var(--info);">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <div>
+                <div class="stat-text-val" style="color: var(--info);" id="totalSubjectsCount">–</div>
+                <div class="stat-text-lbl">Subjects</div>
+            </div>
+        </div>
+        <div class="stat-pill">
+            <div class="stat-icon" style="background: rgba(245,158,11,0.1); color: var(--warning);">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div>
+                <div class="stat-text-val" style="color: var(--warning);" id="uniqueAYCount">–</div>
+                <div class="stat-text-lbl">Academic Years</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="search-bar">
+        <span style="color: var(--text-muted); font-size: 1rem;"><i class="fas fa-search"></i></span>
+        <input type="text" class="search-input" id="presetSearch" placeholder="Search presets by dept, year, semester, division…" oninput="filterPresets()">
+        <select id="yearFilter" onchange="filterPresets()" style="min-width: 100px;">
+            <option value="">All Years</option>
+            <option value="FE">FE</option>
+            <option value="SE">SE</option>
+            <option value="TE">TE</option>
+            <option value="BE">BE</option>
+        </select>
+        <select id="semFilter" onchange="filterPresets()" style="min-width: 120px;">
+            <option value="">All Semesters</option>
+            <option value="1">Sem 1</option>
+            <option value="2">Sem 2</option>
+            <option value="3">Sem 3</option>
+            <option value="4">Sem 4</option>
+            <option value="5">Sem 5</option>
+            <option value="6">Sem 6</option>
+            <option value="7">Sem 7</option>
+            <option value="8">Sem 8</option>
+        </select>
+    </div>
+
+    <!-- Preset Grid -->
+    <div class="preset-grid" id="presetGrid">
+        {% for preset in presets %}
+        <div class="preset-card"
+             data-name="{{ preset[3] or '' }} {{ preset[4] }} {{ preset[5] }} {{ preset[6] }} {{ preset[1] }}"
+             data-year="{{ preset[4] }}"
+             data-sem="{{ preset[6] }}">
+            <div class="preset-tag">{{ preset[1] }}</div>
+            <div style="padding-right: 5rem;">
+                <h3 style="margin: 0; font-size: 1.2rem; color: var(--text-main);">{{ preset[3] or 'General' }}</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0;">{{ preset[2] }}</p>
+            </div>
+            <div class="preset-info-row">
+                <span class="info-chip">{{ preset[4] }} Year</span>
+                <span class="info-chip sem">Sem {{ preset[6] }}</span>
+                <span class="info-chip div">Div {{ preset[5] }}</span>
+            </div>
+            <div class="preset-actions">
+                <a href="{{ url_for('manage_subjects', preset_id=preset[0]) }}" class="btn btn-primary" style="font-size: 0.88rem; padding: 0.7rem 1rem;">
+                    <i class="fas fa-book"></i> Manage Subjects
                 </a>
                 <a href="{{ url_for('view_preset_results', preset_id=preset[0]) }}" class="btn btn-primary"
-                    style="font-size: 0.9rem; background: var(--success); border-color: var(--success);">
+                    style="font-size: 0.88rem; padding: 0.7rem 1rem; background: linear-gradient(135deg, var(--success), #059669);">
                     <i class="fas fa-poll"></i> Class Results
                 </a>
-                <div style="display: flex; gap: 0.5rem;">
-                    <!-- Pass data via attributes to avoid JS Syntax Errors -->
-                    <button class="btn btn-primary" style="flex: 1; font-size: 0.8rem; background: var(--secondary);"
-                        onclick="openDuplicateModal(this)" data-id="{{ preset[0] }}"
-                        data-academic-year="{{ preset[1] }}" data-course="{{ preset[2] }}"
-                        data-department="{{ preset[3] }}" data-year="{{ preset[4] }}" data-division="{{ preset[5] }}"
-                        data-semester="{{ preset[6] }}">
+                <div class="preset-actions-row">
+                    <button class="btn btn-primary" style="flex: 1; font-size: 0.8rem; padding: 0.6rem 0.75rem; background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));"
+                        onclick="openDuplicateModal(this)"
+                        data-id="{{ preset[0] }}" data-academic-year="{{ preset[1] }}" data-course="{{ preset[2] }}"
+                        data-department="{{ preset[3] }}" data-year="{{ preset[4] }}" data-division="{{ preset[5] }}" data-semester="{{ preset[6] }}">
                         <i class="fas fa-copy"></i> Clone
                     </button>
-                    <button class="btn btn-primary"
-                        style="flex: 1; font-size: 0.8rem; background: var(--accent); border-color: var(--accent);"
-                        onclick="openEditModal(this)" data-id="{{ preset[0] }}" data-academic-year="{{ preset[1] }}"
-                        data-course="{{ preset[2] }}" data-department="{{ preset[3] }}" data-year="{{ preset[4] }}"
-                        data-division="{{ preset[5] }}" data-semester="{{ preset[6] }}">
+                    <button class="btn btn-primary" style="flex: 1; font-size: 0.8rem; padding: 0.6rem 0.75rem; background: linear-gradient(135deg, var(--accent), #d97706);"
+                        onclick="openEditModal(this)"
+                        data-id="{{ preset[0] }}" data-academic-year="{{ preset[1] }}" data-course="{{ preset[2] }}"
+                        data-department="{{ preset[3] }}" data-year="{{ preset[4] }}" data-division="{{ preset[5] }}" data-semester="{{ preset[6] }}">
                         <i class="fas fa-edit"></i> Edit
                     </button>
                     <a href="{{ url_for('delete_preset', preset_id=preset[0]) }}" class="btn btn-danger"
-                        style="flex: 0.5; font-size: 0.8rem; display:flex; align-items:center; justify-content:center; background: var(--danger); border-color: var(--danger);"
-                        onclick="return confirm('Are you sure you want to delete this preset?');">
+                        style="padding: 0.6rem 0.85rem; font-size: 0.8rem;"
+                        onclick="return confirm('Delete this preset? All subjects and marks will be permanently removed.')">
                         <i class="fas fa-trash"></i>
                     </a>
                 </div>
             </div>
         </div>
         {% else %}
-        <div class="glass card" style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
-            <i class="fas fa-folder-open" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
-            <h3>No Presets Found</h3>
-            <p style="color: var(--text-muted);">Create a class preset to get started.</p>
+        <div class="empty-state">
+            <i class="fas fa-folder-open" style="font-size: 3.5rem; color: var(--text-dim); margin-bottom: 1.5rem;"></i>
+            <h3 style="color: var(--text-muted);">No Presets Yet</h3>
+            <p style="color: var(--text-dim); margin: 0.5rem 0 1.5rem;">Create your first class preset to get started.</p>
+            <button class="btn btn-primary" onclick="openAddModal()"><i class="fas fa-plus"></i> Create First Preset</button>
         </div>
         {% endfor %}
+        <div class="no-matches" id="noMatchMsg">
+            <i class="fas fa-search" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 0.75rem;"></i>
+            <p>No presets match your search.</p>
+        </div>
     </div>
 </div>
 
-<!-- Add/Edit Preset Modal -->
-<div id="presetModal"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.6); z-index: 1000; backdrop-filter: blur(8px);">
-    <div class="glass"
-        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px; box-shadow: var(--shadow-xl); border: 1px solid var(--glass-border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 id="modalTitle" style="margin: 0; font-size: 1.5rem; color: var(--text-main);">Add New Preset</h2>
-            <button onclick="closeModal()"
-                style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+<!-- ── Add / Edit / Clone Modal ── -->
+<div id="presetModal" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div>
+                <h2 id="modalTitle" style="margin: 0; font-size: 1.4rem;">Add New Preset</h2>
+                <p id="modalSubtitle" style="margin: 0.2rem 0 0; color: var(--text-muted); font-size: 0.88rem;">Define a new class configuration</p>
+            </div>
+            <button class="modal-close" onclick="closeModal()">&#x2715;</button>
         </div>
-
         <form id="presetForm" method="post">
             <div class="form-group">
                 <label>Academic Year</label>
                 <input type="text" id="academic_year" name="academic_year" placeholder="e.g. 2025-26" required>
             </div>
-
-            <!-- Hidden Course Field (Fixed to BE) -->
             <input type="hidden" id="course" name="course" value="BE">
-
             <div class="form-group">
                 <label>Department</label>
                 <select id="department" name="department" required>
                     <option value="" disabled selected>Select Department</option>
                     <option value="Computer Engineering">Computer Engineering</option>
-                    <option value="AI & ML">AI & ML</option>
-                    <option value="Electronics & Computer Science">Electronics & Computer Science (ECS)</option>
+                    <option value="AI &amp; ML">AI &amp; ML</option>
+                    <option value="Electronics &amp; Computer Science">Electronics &amp; Computer Science (ECS)</option>
                     <option value="Mechanical Engineering">Mechanical Engineering</option>
                     <option value="Information Technology">Information Technology</option>
                 </select>
             </div>
-
-            <div style="display: flex; gap: 1rem;">
-                <div class="form-group" style="flex: 1;">
+            <div class="form-row">
+                <div class="form-group" style="margin-bottom: 0;">
                     <label>Year</label>
                     <select id="year" name="year" required>
                         <option value="FE">FE</option>
@@ -122,140 +359,168 @@
                         <option value="BE">BE</option>
                     </select>
                 </div>
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group" style="margin-bottom: 0;">
                     <label>Division</label>
                     <input type="text" id="division" name="division" placeholder="e.g. A" required>
                 </div>
-                <div class="form-group" style="flex: 1;">
+                <div class="form-group" style="margin-bottom: 0;">
                     <label>Semester</label>
-                    <input type="text" id="semester" name="semester" placeholder="e.g. 3" required>
+                    <input type="text" id="semester" name="semester" placeholder="e.g. 5" required>
                 </div>
             </div>
-            <button type="submit" id="modalSubmitBtn" class="btn btn-primary"
-                style="width: 100%; margin-top: 1rem;">Create Preset</button>
-            <button type="button" class="btn btn-secondary" onclick="closeModal()"
-                style="width: 100%; margin-top: 0.5rem; background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted);">
-                Close
-            </button>
+            <div class="modal-actions">
+                <button type="submit" id="modalSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.95rem;">Create Preset</button>
+                <button type="button" class="btn" onclick="closeModal()"
+                    style="width: 100%; background: transparent; border: 1.5px solid var(--glass-border); color: var(--text-muted); padding: 0.75rem;">
+                    Cancel
+                </button>
+            </div>
         </form>
     </div>
 </div>
 
-<!-- Backup/Restore Modal -->
-<div id="backupModal"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.6); z-index: 1000; backdrop-filter: blur(8px);">
-    <div class="glass"
-        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 2rem; width: 90%; max-width: 500px; box-shadow: var(--shadow-xl); border: 1px solid var(--glass-border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-            <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-main);">Database Management</h2>
-            <button onclick="document.getElementById('backupModal').style.display='none'"
-                style="background: none; border: none; color: var(--text-muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
+<!-- ── Backup/Restore Modal ── -->
+<div id="backupModal" class="modal-overlay" onclick="if(event.target===this) document.getElementById('backupModal').classList.remove('active')">
+    <div class="modal-box" style="max-width: 480px;">
+        <div class="modal-header">
+            <div>
+                <h2 style="margin:0; font-size: 1.4rem;"><i class="fas fa-database" style="color: var(--warning);"></i> Database Management</h2>
+                <p style="margin: 0.2rem 0 0; color: var(--text-muted); font-size: 0.88rem;">Backup, restore, or migrate your data</p>
+            </div>
+            <button class="modal-close" onclick="document.getElementById('backupModal').classList.remove('active')">&#x2715;</button>
         </div>
 
-        <div style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--glass-border);">
-            <h3>Backup</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Download a copy of the current
-                database.</p>
-            <a href="{{ url_for('download_db') }}" class="btn btn-primary" style="width: 100%;">
-                <i class="fas fa-download"></i> Download Database
-            </a>
-        </div>
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Backup -->
+            <div style="padding: 1.25rem; background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.15); border-radius: 14px;">
+                <h3 style="margin: 0 0 0.4rem; color: var(--success); font-size: 1rem;"><i class="fas fa-download"></i> Backup</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 1rem;">Download a copy of the current database file.</p>
+                <a href="{{ url_for('download_db') }}" class="btn btn-primary" style="width: 100%; background: var(--success);">
+                    <i class="fas fa-download"></i> Download Database
+                </a>
+            </div>
 
-        <div>
-            <h3>Restore</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Upload a database file to
-                replace the current one. <span style="color: var(--danger);">Warning: This overwrites current
-                    data!</span></p>
-            <form action="{{ url_for('upload_db') }}" method="post" enctype="multipart/form-data">
-                <input type="file" name="db_file" accept=".db" required style="margin-bottom: 1rem;">
-                <button type="submit" class="btn btn-danger"
-                    style="width: 100%; background: var(--danger); border-color: var(--danger);"
-                    onclick="return confirm('Are you sure you want to overwrite the database? This cannot be undone.');">
-                    <i class="fas fa-upload"></i> Restore Database
-                </button>
-            </form>
-        </div>
+            <!-- Restore -->
+            <div style="padding: 1.25rem; background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15); border-radius: 14px;">
+                <h3 style="margin: 0 0 0.4rem; color: var(--danger); font-size: 1rem;"><i class="fas fa-upload"></i> Restore</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 1rem;"><span style="color: var(--danger); font-weight: 600;">Warning:</span> This overwrites all current data!</p>
+                <form action="{{ url_for('upload_db') }}" method="post" enctype="multipart/form-data">
+                    <input type="file" name="db_file" accept=".db" required style="margin-bottom: 0.75rem; font-size: 0.85rem;">
+                    <button type="submit" class="btn btn-danger" style="width: 100%;"
+                        onclick="return confirm('This will permanently overwrite the database. Continue?')">
+                        <i class="fas fa-upload"></i> Restore Database
+                    </button>
+                </form>
+            </div>
 
-        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--glass-border);">
-            <h3>Migrate Old Database</h3>
-            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
-                Upload an old database backup to automatically convert it to the new schema.
-                <span style="color: var(--info);">✨ Recommended for old backups!</span>
-            </p>
-            <form action="{{ url_for('migrate_db') }}" method="post" enctype="multipart/form-data">
-                <input type="file" name="db_file" accept=".db" required style="margin-bottom: 1rem;">
-                <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--info);"
-                    onclick="return confirm('This will migrate and apply the old database. Your current database will be backed up first. Continue?');">
-                    <i class="fas fa-magic"></i> Migrate & Apply
-                </button>
-            </form>
-            <p style="color: var(--text-dim); margin-top: 0.5rem; font-size: 0.8rem;">
-                💡 This converts INTEGER fields to REAL and updates grading rules automatically.
-            </p>
-            <button type="button" class="btn btn-secondary"
-                onclick="document.getElementById('backupModal').style.display='none'"
-                style="width: 100%; margin-top: 1rem; background: transparent; border: 1px solid var(--text-muted); color: var(--text-muted);">
-                Close
-            </button>
+            <!-- Migrate -->
+            <div style="padding: 1.25rem; background: rgba(6,182,212,0.05); border: 1px solid rgba(6,182,212,0.15); border-radius: 14px;">
+                <h3 style="margin: 0 0 0.4rem; color: var(--info); font-size: 1rem;"><i class="fas fa-magic"></i> Migrate Old Database</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 1rem;">Convert an old backup to the new schema. <span style="color: var(--info);">✨ Safe – current DB is backed up first.</span></p>
+                <form action="{{ url_for('migrate_db') }}" method="post" enctype="multipart/form-data">
+                    <input type="file" name="db_file" accept=".db" required style="margin-bottom: 0.75rem; font-size: 0.85rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--info);"
+                        onclick="return confirm('Migrate and apply the old database? Your current DB is backed up first. Continue?')">
+                        <i class="fas fa-magic"></i> Migrate &amp; Apply
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+    // ── Stats computation ──
+    window.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.preset-card');
+        const ays = new Set();
+        cards.forEach(c => {
+            const nameData = c.dataset.name || '';
+            const parts = nameData.split(' ');
+            if (parts.length > 0) ays.add(parts[parts.length - 1]);
+        });
+        document.getElementById('uniqueAYCount').innerText = ays.size || '–';
+
+        // Fetch student + subject counts from hidden data attributes if available
+        const totalStudentsEl = document.getElementById('totalStudentsCount');
+        const totalSubjectsEl = document.getElementById('totalSubjectsCount');
+
+        fetch('/api/admin_stats').then(r => r.json()).then(d => {
+            if (d.students !== undefined) totalStudentsEl.innerText = d.students;
+            if (d.subjects !== undefined) totalSubjectsEl.innerText = d.subjects;
+        }).catch(() => {
+            totalStudentsEl.innerText = '–';
+            totalSubjectsEl.innerText = '–';
+        });
+    });
+
+    // ── Filter ──
+    function filterPresets() {
+        const q = document.getElementById('presetSearch').value.toLowerCase();
+        const yr = document.getElementById('yearFilter').value;
+        const sm = document.getElementById('semFilter').value;
+        const cards = document.querySelectorAll('.preset-card');
+        let visible = 0;
+        cards.forEach(c => {
+            const name = (c.dataset.name || '').toLowerCase();
+            const year = c.dataset.year || '';
+            const sem  = c.dataset.sem || '';
+            const show = name.includes(q) && (!yr || year === yr) && (!sm || sem === sm);
+            c.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        document.getElementById('noMatchMsg').style.display = visible === 0 && document.querySelectorAll('.preset-card').length > 0 ? 'block' : 'none';
+    }
+
+    // ── Modals ──
     function openAddModal() {
         document.getElementById('modalTitle').innerText = 'Add New Preset';
+        document.getElementById('modalSubtitle').innerText = 'Define a new class configuration';
         document.getElementById('presetForm').action = "{{ url_for('add_preset') }}";
         document.getElementById('modalSubmitBtn').innerText = 'Create Preset';
-
         document.getElementById('academic_year').value = '';
         document.getElementById('course').value = 'BE';
         document.getElementById('department').value = '';
         document.getElementById('year').value = 'FE';
         document.getElementById('division').value = '';
         document.getElementById('semester').value = '';
-
-        document.getElementById('presetModal').style.display = 'block';
+        document.getElementById('presetModal').classList.add('active');
     }
 
     function openEditModal(btn) {
         document.getElementById('modalTitle').innerText = 'Edit Preset';
+        document.getElementById('modalSubtitle').innerText = 'Update the configuration for this class';
         const id = btn.dataset.id;
-        var url = "{{ url_for('edit_preset', preset_id=0) }}".replace('0', id);
-
-        document.getElementById('presetForm').action = url;
+        document.getElementById('presetForm').action = "{{ url_for('edit_preset', preset_id=0) }}".replace('0', id);
         document.getElementById('modalSubmitBtn').innerText = 'Update Preset';
-
         document.getElementById('academic_year').value = btn.dataset.academicYear;
-        // Course is hidden but set it anyway
         document.getElementById('course').value = btn.dataset.course || 'BE';
         document.getElementById('department').value = btn.dataset.department;
         document.getElementById('year').value = btn.dataset.year;
         document.getElementById('division').value = btn.dataset.division;
         document.getElementById('semester').value = btn.dataset.semester;
-
-        document.getElementById('presetModal').style.display = 'block';
+        document.getElementById('presetModal').classList.add('active');
     }
 
     function openDuplicateModal(btn) {
-        document.getElementById('modalTitle').innerText = 'Duplicate Preset (Deep Copy)';
+        document.getElementById('modalTitle').innerText = 'Clone Preset';
+        document.getElementById('modalSubtitle').innerText = 'Creates a deep copy with all subjects';
         const id = btn.dataset.id;
-        var url = "{{ url_for('duplicate_preset', preset_id=0) }}".replace('0', id);
-
-        document.getElementById('presetForm').action = url;
+        document.getElementById('presetForm').action = "{{ url_for('duplicate_preset', preset_id=0) }}".replace('0', id);
         document.getElementById('modalSubmitBtn').innerText = 'Clone & Copy Subjects';
-
         document.getElementById('academic_year').value = btn.dataset.academicYear;
         document.getElementById('course').value = btn.dataset.course || 'BE';
         document.getElementById('department').value = btn.dataset.department;
         document.getElementById('year').value = btn.dataset.year;
         document.getElementById('division').value = '';
         document.getElementById('semester').value = btn.dataset.semester;
-
-        document.getElementById('presetModal').style.display = 'block';
+        document.getElementById('presetModal').classList.add('active');
     }
 
     function closeModal() {
-        document.getElementById('presetModal').style.display = 'none';
+        document.getElementById('presetModal').classList.remove('active');
     }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); document.getElementById('backupModal').classList.remove('active'); } });
 </script>
 {% endblock %}
