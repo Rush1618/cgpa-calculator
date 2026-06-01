@@ -96,8 +96,17 @@
                 </div>
             </div>
 
+            <!-- User Role / Authority Status -->
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label><i class="fas fa-user-shield" style="margin-right: 0.4rem; color: var(--primary);"></i> Account Role</label>
+                <select name="is_admin" required>
+                    <option value="0" {% if student[6] == 0 %}selected{% endif %}>Student (Default)</option>
+                    <option value="1" {% if student[6] == 1 %}selected{% endif %}>Administrator</option>
+                </select>
+            </div>
+
             <!-- Actions Row -->
-            <div style="display: flex; gap: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+            <div style="display: flex; gap: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem; margin-top: 2rem;">
                 <a href="{{ url_for('view_students') }}" class="btn" style="flex: 1; background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted);">
                     Back
                 </a>

@@ -899,7 +899,7 @@ def view_result():
     cursor = conn.cursor()
 
     try:
-        cursor.execute("SELECT id FROM users WHERE email=?", (session['user']['email'],))
+        cursor.execute("SELECT id, current_year FROM users WHERE email=?", (session['user']['email'],))
         user_res = cursor.fetchone()
         
         if not user_res:
@@ -908,6 +908,7 @@ def view_result():
             return redirect(url_for('login'))
             
         user_id = user_res[0]
+        student_current_semester = user_res[1] or "N/A"
 
         # Fetch ALL subject results across ALL semesters, joined with subject and preset info
         cursor.execute("""
@@ -981,7 +982,8 @@ def view_result():
         conn.close()
         return render_template('result.html',
                                grouped_results=grouped_results,
-                               overall_cgpa=overall_cgpa)
+                               overall_cgpa=overall_cgpa,
+                               student_current_semester=student_current_semester)
         
     except Exception as e:
         import traceback
@@ -1250,10 +1252,11 @@ def edit_student_record(user_id):
         enrollment_number = request.form['enrollment_number']
         academic_year = request.form['academic_year']
         current_year = request.form['current_year']
+        is_admin = int(request.form.get('is_admin', 0))
 
         cursor.execute(
-            "UPDATE users SET name=?, roll_number=?, enrollment_number=?, department=?, academic_year=?, current_year=? WHERE id=?",
-            (name, roll_number, enrollment_number, department, academic_year, current_year, user_id)
+            "UPDATE users SET name=?, roll_number=?, enrollment_number=?, department=?, academic_year=?, current_year=?, is_admin=? WHERE id=?",
+            (name, roll_number, enrollment_number, department, academic_year, current_year, is_admin, user_id)
         )
 
         conn.commit()
@@ -1262,7 +1265,7 @@ def edit_student_record(user_id):
         flash("Student updated!", "success")
         return redirect(url_for('view_students'))
 
-    cursor.execute("SELECT name, roll_number, enrollment_number, department, academic_year, current_year FROM users WHERE id=?", (user_id,))
+    cursor.execute("SELECT name, roll_number, enrollment_number, department, academic_year, current_year, is_admin FROM users WHERE id=?", (user_id,))
     student = cursor.fetchone()
 
     conn.close()
@@ -1640,12 +1643,274 @@ def download_master_csv():
     response.headers["Content-Disposition"] = f"attachment; filename=MasterSheet_{preset_name}.csv"
     response.headers["Content-type"] = "text/csv"
     return response
+@app.route('/result/pdf')
 def download_pdf():
     if 'user' not in session:
         return redirect(url_for('index'))
 
-    flash("PDF generation coming soon!", "info")
-    return redirect(url_for('view_result'))
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT id, name, roll_number, enrollment_number, department, current_year FROM users WHERE email=?", (session['user']['email'],))
+        user_res = cursor.fetchone()
+        
+        if not user_res:
+            session.pop('user', None)
+            flash("Session expired or user not found. Please log in again.", "error")
+            return redirect(url_for('login'))
+            
+        user_id, student_name, roll_number, enrollment_number, department, current_year = user_res
+
+        # Fetch results
+        cursor.execute("""
+            SELECT 
+                p.course,
+                p.year,
+                p.semester,
+                s.name as subject_name, 
+                sr.total_obtained_marks, 
+                sr.total_max_marks, 
+                sr.percentage, 
+                sr.grade, 
+                sr.grade_point,
+                s.credits,
+                s.code
+            FROM subject_results sr
+            JOIN subjects s ON sr.subject_id = s.id
+            JOIN presets p ON s.preset_id = p.id
+            WHERE sr.user_id = ?
+            ORDER BY p.year ASC, p.semester ASC
+        """, (user_id,))
+        
+        raw_results = cursor.fetchall()
+        
+        if not raw_results:
+            conn.close()
+            flash("No results calculated yet.", "warning")
+            return redirect(url_for('view_result'))
+
+        # Group results by semester
+        grouped = {}
+        for row in raw_results:
+            sem_key = f"{row[1]} Year - Semester {row[2]}"
+            if sem_key not in grouped:
+                grouped[sem_key] = {
+                    'course': row[0],
+                    'subjects': [],
+                    'total_credits': 0,
+                    'total_points': 0
+                }
+            grouped[sem_key]['subjects'].append({
+                'name': row[3],
+                'obtained': row[4],
+                'max': row[5],
+                'percentage': row[6],
+                'grade': row[7],
+                'point': row[8],
+                'credits': row[9],
+                'code': row[10] or ''
+            })
+            grouped[sem_key]['total_credits'] += row[9]
+            grouped[sem_key]['total_points'] += (row[8] * row[9])
+
+        all_credits = 0
+        all_points = 0
+        for sk, data in grouped.items():
+            data['sgpa'] = round(data['total_points'] / data['total_credits'], 2) if data['total_credits'] > 0 else 0.0
+            all_credits += data['total_credits']
+            all_points += data['total_points']
+        
+        overall_cgpa = round(all_points / all_credits, 2) if all_credits > 0 else 0.0
+
+        conn.close()
+
+        # Build PDF with ReportLab
+        import io
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+        story = []
+
+        styles = getSampleStyleSheet()
+        
+        title_style = ParagraphStyle(
+            'TitleStyle',
+            parent=styles['Heading1'],
+            fontSize=22,
+            textColor=colors.HexColor('#4f46e5'),
+            spaceAfter=15,
+            alignment=1 # Center
+        )
+
+        header_style = ParagraphStyle(
+            'HeaderStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            leading=14,
+            textColor=colors.HexColor('#1f2937')
+        )
+
+        sem_title_style = ParagraphStyle(
+            'SemTitleStyle',
+            parent=styles['Heading2'],
+            fontSize=13,
+            textColor=colors.HexColor('#111827'),
+            spaceBefore=15,
+            spaceAfter=6
+        )
+
+        table_header_style = ParagraphStyle(
+            'TableHeader',
+            parent=styles['Normal'],
+            fontSize=9,
+            fontName='Helvetica-Bold',
+            textColor=colors.white
+        )
+
+        table_cell_style = ParagraphStyle(
+            'TableCell',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#374151')
+        )
+
+        # Header Title
+        story.append(Paragraph("ACADEMIC TRANSCRIPT REPORT", title_style))
+        story.append(Spacer(1, 10))
+
+        # Student Details Card Grid
+        details_data = [
+            [
+                Paragraph(f"<b>Name:</b> {student_name}", header_style),
+                Paragraph(f"<b>Roll Number:</b> {roll_number or '-'}", header_style)
+            ],
+            [
+                Paragraph(f"<b>Enrollment Number:</b> {enrollment_number or '-'}", header_style),
+                Paragraph(f"<b>Department:</b> {department or '-'}", header_style)
+            ],
+            [
+                Paragraph(f"<b>Current Semester:</b> Semester {current_year or '-'}", header_style),
+                Paragraph(f"<b>Cumulative GPA:</b> <font color='#4f46e5'><b>{overall_cgpa}</b></font>", header_style)
+            ]
+        ]
+        details_table = Table(details_data, colWidths=[260, 260])
+        details_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f9fafb')),
+            ('PADDING', (0,0), (-1,-1), 8),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#e5e7eb')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        story.append(details_table)
+        story.append(Spacer(1, 15))
+
+        # Semester Wise Subjects
+        for sk, sem_data in grouped.items():
+            story.append(Paragraph(f"<b>{sem_data['course']}</b> ({sk}) — SGPA: <b>{sem_data['sgpa']}</b>", sem_title_style))
+            
+            # Table Data
+            sub_rows = [[
+                Paragraph("Subject Code", table_header_style),
+                Paragraph("Subject Name", table_header_style),
+                Paragraph("Marks Obtained", table_header_style),
+                Paragraph("Grade", table_header_style),
+                Paragraph("Credits", table_header_style),
+                Paragraph("Points", table_header_style),
+            ]]
+
+            for s in sem_data['subjects']:
+                sub_rows.append([
+                    Paragraph(s['code'], table_cell_style),
+                    Paragraph(s['name'], table_cell_style),
+                    Paragraph(f"{s['obtained']}/{s['max']}", table_cell_style),
+                    Paragraph(s['grade'], table_cell_style),
+                    Paragraph(str(s['credits']), table_cell_style),
+                    Paragraph(f"{s['point'] * s['credits']:.1f}", table_cell_style)
+                ])
+            
+            # Semester Totals Footer Row
+            sub_rows.append([
+                Paragraph("<b>Total</b>", table_cell_style),
+                Paragraph("", table_cell_style),
+                Paragraph("", table_cell_style),
+                Paragraph("", table_cell_style),
+                Paragraph(f"<b>{sem_data['total_credits']}</b>", table_cell_style),
+                Paragraph(f"<b>{sem_data['total_points']:.1f}</b>", table_cell_style)
+            ])
+
+            sub_table = Table(sub_rows, colWidths=[90, 190, 80, 50, 50, 60])
+            sub_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#4f46e5')),
+                ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('BOTTOMPADDING', (0,0), (-1,0), 6),
+                ('TOPPADDING', (0,0), (-1,0), 6),
+                ('BOTTOMPADDING', (0,1), (-1,-1), 5),
+                ('TOPPADDING', (0,1), (-1,-1), 5),
+                ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#f3f4f6')),
+                ('GRID', (0,0), (-1,-2), 0.5, colors.HexColor('#e5e7eb')),
+                ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#d1d5db')),
+            ]))
+            story.append(sub_table)
+            story.append(Spacer(1, 10))
+
+        # Overall Transcript Summary
+        story.append(Spacer(1, 15))
+        summary_title_style = ParagraphStyle(
+            'SummaryTitle',
+            parent=styles['Heading2'],
+            fontSize=12,
+            textColor=colors.HexColor('#4f46e5'),
+            spaceBefore=10,
+            spaceAfter=4
+        )
+        story.append(Paragraph("<b>Transcript Summary</b>", summary_title_style))
+        summary_rows = [
+            [
+                Paragraph("Total Earned Credits", table_cell_style),
+                Paragraph(f"<b>{all_credits}</b>", table_cell_style)
+            ],
+            [
+                Paragraph("Overall Weighted Points", table_cell_style),
+                Paragraph(f"<b>{all_points:.1f}</b>", table_cell_style)
+            ],
+            [
+                Paragraph("Cumulative GPA (CGPA)", table_cell_style),
+                Paragraph(f"<font color='#4f46e5'><b>{overall_cgpa}</b></font>", table_cell_style)
+            ]
+        ]
+        summary_table = Table(summary_rows, colWidths=[200, 100])
+        summary_table.setStyle(TableStyle([
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#e5e7eb')),
+            ('PADDING', (0,0), (-1,-1), 6),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#d1d5db')),
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f9fafb')),
+        ]))
+        story.append(summary_table)
+
+        doc.build(story)
+        buffer.seek(0)
+
+        from flask import send_file
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"Transcript_{student_name.replace(' ', '_')}.pdf",
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error compiling PDF transcript: {e}")
+        print(traceback.format_exc())
+        if 'conn' in locals():
+            conn.close()
+        flash("An error occurred generating your PDF transcript.", "error")
+        return redirect(url_for('view_result'))
 
 
 @app.route('/dev_login', methods=['GET', 'POST'])

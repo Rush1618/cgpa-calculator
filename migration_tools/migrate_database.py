@@ -138,11 +138,7 @@ def create_new_schema(cursor):
 
 
 def migrate_database(old_db_path, output_path):
-    print(f"🚀 Starting migration from '{old_db_path}' to '{output_path}'...")
-    
-    if not os.path.exists(old_db_path):
-        print(f"❌ Error: Input file '{old_db_path}' not found.")
-        return False
+    print(f"Starting migration from '{old_db_path}' to '{output_path}'...")
 
     # 1. Read data from Old DB
     print("   Reading data from old database...")
@@ -168,10 +164,10 @@ def migrate_database(old_db_path, output_path):
         # grading_rules not needed to copy, we use new ones
         
         old_conn.close()
-        print(f"   ✓ Read {len(users)} users, {len(presets)} presets, {len(student_marks)} marks")
+        print(f"   Read {len(users)} users, {len(presets)} presets, {len(student_marks)} marks")
         
     except Exception as e:
-        print(f"❌ Error reading old database: {str(e)}")
+        print(f"Error reading old database: {str(e)}")
         return False
 
     # 2. Create New DB and Schema
@@ -210,40 +206,44 @@ def migrate_database(old_db_path, output_path):
 
     # 1. Users (Handle schema change)
     if users:
-        print(f"   ℹ️  Migrating {len(users)} users...")
+        print(f"   Migrating {len(users)} users...")
         sample_user = users[0]
-        # Check if old schema (5 columns: id, email, name, roll, is_admin)
+        # Check column length of old users table
         if len(sample_user) == 5:
             migrated_users = []
             for u in users:
-                # Map: id, email, name, roll, NULL, NULL, NULL, NULL, is_admin
+                # Map: id (0), email (1), name (2), roll (3), NULL, NULL, NULL, NULL, is_admin (4)
                 migrated_users.append((u[0], u[1], u[2], u[3], None, None, None, None, u[4]))
             
             new_cursor.executemany(
                 "INSERT INTO users (id, email, name, roll_number, enrollment_number, department, academic_year, current_year, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
                 migrated_users
             )
-            print(f"   ✓ Converted and migrated {len(users)} users (added profile fields)")
+            print(f"   Converted and migrated {len(users)} users (added profile fields)")
+        elif len(sample_user) == 8:
+            migrated_users = []
+            for u in users:
+                # Map: id (0), email (1), name (2), roll (3), enrollment (4), dept (5), ac_year (6), current_year (7), default is_admin=0
+                migrated_users.append((u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], 0))
+            new_cursor.executemany(
+                "INSERT INTO users (id, email, name, roll_number, enrollment_number, department, academic_year, current_year, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                migrated_users
+            )
+            print(f"   Converted and migrated {len(users)} users (added default admin status field)")
         else:
-            # Assume 9 columns or let it fail/handle dynamically? 
-            # If 9, exact match.
+            # Assume 9 columns or full schema match
             new_cursor.executemany("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", users)
-            print(f"   ✓ Migrated {len(users)} users (schema match)")
+            print(f"   Migrated {len(users)} users (schema match)")
     
-    # 2. Presets (no conversion needed)
     # 2. Presets (Handle schema change)
     if presets:
-        print(f"   ℹ️  Migrating {len(presets)} presets...")
+        print(f"   Migrating {len(presets)} presets...")
         sample_preset = presets[0]
         # Old schema: id, ac_year, course, year, div, sem (6 cols) or 5?
-        # Let's check how many cols in old db.
-        # database.py had: id, academic_year, course, year, division, semester (6 cols)
         # New db has: id, academic_year, course, department, year, division, semester (7 cols)
-        
         migrated_presets = []
         for p in presets:
             if len(p) == 6: # Old schema
-                 # Map: id, ac_year, course, 'Computer Engineering' (dept), year, div, sem
                  migrated_presets.append((p[0], p[1], p[2], 'Computer Engineering', p[3], p[4], p[5]))
             else:
                  migrated_presets.append(p)
@@ -252,24 +252,23 @@ def migrate_database(old_db_path, output_path):
             "INSERT INTO presets (id, academic_year, course, department, year, division, semester) VALUES (?, ?, ?, ?, ?, ?, ?)", 
             migrated_presets
         )
-        print(f"   ✓ Migrated {len(presets)} presets (added department field)")
+        print(f"   Migrated {len(presets)} presets (added department field)")
     
     # 3. Subjects (no conversion needed)
     if subjects:
         new_cursor.executemany("INSERT INTO subjects VALUES (?, ?, ?, ?, ?)", subjects)
-        print(f"   ✓ Migrated {len(subjects)} subjects")
+        print(f"   Migrated {len(subjects)} subjects")
     
     # 4. Components (no conversion needed)
     if components:
         new_cursor.executemany("INSERT INTO components VALUES (?, ?, ?, ?)", components)
-        print(f"   ✓ Migrated {len(components)} components")
+        print(f"   Migrated {len(components)} components")
     
     # 5. Student marks (convert to REAL)
     if student_marks:
         converted_marks = [(id, uid, cid, float(marks)) for id, uid, cid, marks in student_marks]
-        converted_marks = [(id, uid, cid, float(marks)) for id, uid, cid, marks in student_marks]
         new_cursor.executemany("INSERT OR IGNORE INTO student_marks VALUES (?, ?, ?, ?)", converted_marks)
-        print(f"   ✓ Migrated {len(student_marks)} student marks (converted to REAL)")
+        print(f"   Migrated {len(student_marks)} student marks (converted to REAL)")
     
     # 6. Subject results (recalculate grades with new rules)
     if subject_results:
@@ -290,26 +289,26 @@ def migrate_database(old_db_path, output_path):
             if old_grade != new_grade or old_grade_point != new_grade_point:
                 recalculated += 1
         
-        print(f"   ✓ Migrated {len(subject_results)} subject results")
+        print(f"   Migrated {len(subject_results)} subject results")
         if recalculated > 0:
-            print(f"   ⚠️  Recalculated {recalculated} grades due to new grading rules")
+            print(f"   [Warning] Recalculated {recalculated} grades due to new grading rules")
     
     # 7. CGPA (already REAL, but may need recalculation)
     if cgpa_records:
         new_cursor.executemany("INSERT OR IGNORE INTO cgpa VALUES (?, ?, ?)", cgpa_records)
-        print(f"   ✓ Migrated {len(cgpa_records)} CGPA records")
-        print(f"   ℹ️  Note: CGPA values may need recalculation if grades changed")
+        print(f"   Migrated {len(cgpa_records)} CGPA records")
+        print(f"   [Info] Note: CGPA values may need recalculation if grades changed")
     
     # Commit and close
     new_conn.commit()
     new_conn.close()
     
-    print(f"\n✅ Migration completed successfully!")
-    print(f"📁 Migrated database saved to: {output_path}")
-    print(f"\n💡 Next steps:")
-    print(f"   1. Backup your current database.db")
+    print("\nMigration completed successfully!")
+    print(f"Migrated database saved to: {output_path}")
+    print("\nNext steps:")
+    print("   1. Backup your current database.db")
     print(f"   2. Replace database.db with {output_path}")
-    print(f"   3. Restart your Flask application")
+    print("   3. Restart your Flask application")
     
     return True
 

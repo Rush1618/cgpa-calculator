@@ -282,19 +282,9 @@
         <div class="cgpa-stats">
             <div class="cgpa-stat-pill">
                 <span class="v">
-                    {% if sem_count > 1 %}
-                        {% set sems = [] %}
-                        {% for pid, d in grouped_results.items() %}
-                            {% if d.semester not in sems %}
-                                {% set _ = sems.append(d.semester | string) %}
-                            {% endif %}
-                        {% endfor %}
-                        Sem {{ sems | join(', ') }}
-                    {% else %}
-                        {% for pid, d in grouped_results.items() %}Sem {{ d.semester }}{% endfor %}
-                    {% endif %}
+                    Sem {{ student_current_semester }}
                 </span>
-                <span class="l">{% if sem_count > 1 %}Active Semesters{% else %}Semester{% endif %}</span>
+                <span class="l">Current Semester</span>
             </div>
             <div class="cgpa-stat-pill">
                 <span class="v">{{ total_subjects.v }}</span>
@@ -455,10 +445,10 @@
            style="background: linear-gradient(135deg, var(--primary), var(--secondary));">
            <i class="fas fa-plus"></i> Calculate Next Semester
         </a>
-        <button onclick="window.print()" class="btn btn-primary"
-                style="background: linear-gradient(135deg, #10b981, #059669); border: none;">
-            <i class="fas fa-print"></i> Print Report
-        </button>
+        <a href="{{ url_for('download_pdf') }}" class="btn btn-primary"
+           style="background: linear-gradient(135deg, #10b981, #059669); border: none; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;">
+            <i class="fas fa-file-pdf"></i> Download PDF
+        </a>
     </div>
 
     {% endif %}
