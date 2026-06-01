@@ -1,68 +1,154 @@
 {% extends 'base.html' %}
+
 {% block title %}Promote Students{% endblock %}
+
+{% block head %}
+<style>
+    .promote-hero {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+    .promote-hero h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    .promote-container { max-width: 680px; margin: 0 auto; }
+
+    .promote-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        padding: 0;
+        overflow: hidden;
+        margin-bottom: 1.25rem;
+        transition: all 0.3s ease;
+    }
+    .promote-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.08);
+    }
+    .promote-btn {
+        width: 100%;
+        padding: 1.5rem 1.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.2s;
+        gap: 1rem;
+    }
+    .promote-btn:hover { background: rgba(255,255,255,0.5); }
+    .promote-btn-left { display: flex; align-items: center; gap: 1.25rem; }
+    .promote-icon {
+        width: 52px; height: 52px;
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .promote-title { font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: block; }
+    .promote-subtitle { font-size: 0.83rem; color: var(--text-muted); display: block; margin-top: 0.15rem; }
+    .promote-arrow { font-size: 1.2rem; transition: transform 0.2s; }
+    .promote-btn:hover .promote-arrow { transform: translateX(5px); }
+
+    .warn-banner {
+        background: rgba(245,158,11,0.08);
+        border: 1.5px solid rgba(245,158,11,0.2);
+        border-radius: 14px;
+        padding: 1.1rem 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        font-size: 0.88rem;
+        color: var(--text-light);
+    }
+    .warn-banner i { color: var(--warning); font-size: 1.2rem; flex-shrink: 0; margin-top: 0.1rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="glass card" style="max-width: 600px; margin: 3rem auto; padding: 2.5rem;">
-    <div style="text-align: center; margin-bottom: 2rem;">
-        <h2 style="color: var(--primary); margin-bottom: 0.5rem;">Promote Students</h2>
-        <p style="color: var(--text-muted);">Advance all students of a specific year to the next level.</p>
+<div style="padding-top: 2rem;">
+    <a href="{{ url_for('admin_dashboard') }}" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <div class="promote-hero">
+        <h1>Promote Students</h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">Advance all students of a specific year to the next academic level.</p>
     </div>
 
-    <div style="display: grid; gap: 1.5rem;">
-        <!-- FE -> SE -->
-        <form method="post">
-            <input type="hidden" name="from_year" value="FE">
-            <input type="hidden" name="to_year" value="SE">
-            <button type="submit" class="btn btn-primary"
-                style="width: 100%; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.2)); border: 1px solid var(--primary-glow);"
-                onclick="return confirm('Are you sure you want to promote ALL First Year (FE) students to Second Year (SE)? This action affects all users.')">
-                <div style="text-align: left;">
-                    <span style="display: block; font-weight: bold; font-size: 1.1rem; color: var(--text-main);">Promote
-                        to Second Year</span>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">First Year (FE) &rarr; Second Year
-                        (SE)</span>
-                </div>
-                <i class="fas fa-chevron-right" style="color: var(--primary);"></i>
-            </button>
-        </form>
+    <div class="promote-container">
+        <!-- Warning -->
+        <div class="warn-banner">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong>Heads up!</strong> Promoting students updates their <em>current year</em> field for all matching records. This action affects all students in the selected year group and cannot be undone automatically.
+            </div>
+        </div>
 
-        <!-- SE -> TE -->
-        <form method="post">
-            <input type="hidden" name="from_year" value="SE">
-            <input type="hidden" name="to_year" value="TE">
-            <button type="submit" class="btn btn-primary"
-                style="width: 100%; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.2)); border: 1px solid rgba(16, 185, 129, 0.4);"
-                onclick="return confirm('Promote ALL Second Year (SE) students to Third Year (TE)?')">
-                <div style="text-align: left;">
-                    <span style="display: block; font-weight: bold; font-size: 1.1rem; color: var(--text-main);">Promote
-                        to Third Year</span>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">Second Year (SE) &rarr; Third Year
-                        (TE)</span>
-                </div>
-                <i class="fas fa-chevron-right" style="color: var(--success);"></i>
-            </button>
-        </form>
+        <!-- FE → SE -->
+        <div class="promote-card">
+            <form method="post">
+                <input type="hidden" name="from_year" value="FE">
+                <input type="hidden" name="to_year" value="SE">
+                <button type="submit" class="promote-btn"
+                    onclick="return confirm('Promote ALL First Year (FE) students to Second Year (SE)? This affects all FE users.')">
+                    <div class="promote-btn-left">
+                        <div class="promote-icon" style="background: rgba(79,70,229,0.1); color: var(--primary);">
+                            <i class="fas fa-level-up-alt"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <span class="promote-title">First Year → Second Year</span>
+                            <span class="promote-subtitle">Promotes all FE students to SE</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right promote-arrow" style="color: var(--primary);"></i>
+                </button>
+            </form>
+        </div>
 
-        <!-- TE -> BE -->
-        <form method="post">
-            <input type="hidden" name="from_year" value="TE">
-            <input type="hidden" name="to_year" value="BE">
-            <button type="submit" class="btn btn-primary"
-                style="width: 100%; padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.2)); border: 1px solid rgba(245, 158, 11, 0.4);"
-                onclick="return confirm('Promote ALL Third Year (TE) students to Final Year (BE)?')">
-                <div style="text-align: left;">
-                    <span style="display: block; font-weight: bold; font-size: 1.1rem; color: var(--text-main);">Promote
-                        to Final Year</span>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">Third Year (TE) &rarr; Final Year
-                        (BE)</span>
-                </div>
-                <i class="fas fa-chevron-right" style="color: var(--warning);"></i>
-            </button>
-        </form>
-    </div>
+        <!-- SE → TE -->
+        <div class="promote-card">
+            <form method="post">
+                <input type="hidden" name="from_year" value="SE">
+                <input type="hidden" name="to_year" value="TE">
+                <button type="submit" class="promote-btn"
+                    onclick="return confirm('Promote ALL Second Year (SE) students to Third Year (TE)?')">
+                    <div class="promote-btn-left">
+                        <div class="promote-icon" style="background: rgba(16,185,129,0.1); color: var(--success);">
+                            <i class="fas fa-level-up-alt"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <span class="promote-title">Second Year → Third Year</span>
+                            <span class="promote-subtitle">Promotes all SE students to TE</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right promote-arrow" style="color: var(--success);"></i>
+                </button>
+            </form>
+        </div>
 
-    <div style="margin-top: 2.5rem; text-align: center;">
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to
-            Dashboard</a>
+        <!-- TE → BE -->
+        <div class="promote-card">
+            <form method="post">
+                <input type="hidden" name="from_year" value="TE">
+                <input type="hidden" name="to_year" value="BE">
+                <button type="submit" class="promote-btn"
+                    onclick="return confirm('Promote ALL Third Year (TE) students to Final Year (BE)?')">
+                    <div class="promote-btn-left">
+                        <div class="promote-icon" style="background: rgba(245,158,11,0.1); color: var(--warning);">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <div style="text-align: left;">
+                            <span class="promote-title">Third Year → Final Year</span>
+                            <span class="promote-subtitle">Promotes all TE students to BE</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right promote-arrow" style="color: var(--warning);"></i>
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

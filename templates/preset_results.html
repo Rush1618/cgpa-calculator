@@ -1,134 +1,240 @@
 {% extends 'base.html' %}
 
-{% block title %}Results – {{ preset[3] or 'General' }} {{ preset[4] }} Sem {{ preset[6] }}{% endblock %}
+{% block title %}Class Results — {{ preset[3] or 'General' }} Sem {{ preset[6] }}{% endblock %}
+
+{% block head %}
+<style>
+    .results-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: 22px;
+        padding: 2rem 2.5rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .results-header::before {
+        content: '';
+        position: absolute; top: -50%; right: -10%;
+        width: 350px; height: 350px;
+        background: rgba(255,255,255,0.07);
+        border-radius: 50%;
+    }
+    .header-title { font-size: 1.8rem; font-weight: 800; margin: 0; color: white; }
+    .header-meta { opacity: 0.8; font-size: 0.9rem; margin: 0.4rem 0 0; }
+    .header-actions { display: flex; gap: 0.75rem; align-items: center; position: relative; z-index: 1; }
+    .header-actions a { backdrop-filter: blur(8px); }
+
+    /* Stats Row */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card-mini {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+    .stat-card-mini:hover { transform: translateY(-3px); }
+    .stat-card-mini .num { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+    .stat-card-mini .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-top: 0.3rem; }
+
+    /* Filter */
+    .filter-strip {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1rem 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+    }
+    .filter-strip input { border-radius: 10px; padding: 0.6rem 1rem; flex: 1; min-width: 200px; }
+    .fail-toggle {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        background: rgba(239,68,68,0.05);
+        border: 1.5px solid rgba(239,68,68,0.15);
+        border-radius: 10px;
+        padding: 0.5rem 0.85rem;
+        transition: all 0.2s;
+    }
+    .fail-toggle:has(input:checked) {
+        background: rgba(239,68,68,0.1);
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+    .fail-toggle input { width: auto; margin: 0; }
+
+    /* Table */
+    .results-table-wrap {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    .results-table-wrap table { margin: 0; }
+    .results-table-wrap thead th {
+        background: linear-gradient(135deg, rgba(79,70,229,0.07) 0%, rgba(124,58,237,0.04) 100%);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 1rem 1.2rem;
+    }
+    .results-table-wrap tbody td { padding: 0.9rem 1.2rem; }
+    .results-table-wrap tbody tr { border-bottom: 1px solid var(--glass-border); transition: background 0.15s; }
+    .results-table-wrap tbody tr:hover { background: rgba(79,70,229,0.03); }
+    .results-table-wrap tbody tr.has-fail { background: rgba(239,68,68,0.03); }
+    .results-table-wrap tbody tr.has-fail:hover { background: rgba(239,68,68,0.06); }
+    .results-table-wrap tbody tr:last-child { border-bottom: none; }
+    .roll-cell { font-weight: 700; color: var(--primary); font-size: 0.9rem; }
+    .name-cell { font-weight: 600; color: var(--text-main); }
+    .status-pass { background: rgba(16,185,129,0.1); color: var(--success); border: 1px solid rgba(16,185,129,0.2); padding: 0.25rem 0.75rem; border-radius: 30px; font-size: 0.75rem; font-weight: 700; }
+    .status-fail { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); padding: 0.25rem 0.75rem; border-radius: 30px; font-size: 0.75rem; font-weight: 700; }
+    .sgpa-cell { font-size: 1.05rem; font-weight: 800; text-align: center; }
+
+    .no-data-empty { text-align: center; padding: 5rem 2rem; }
+    .no-match-msg { display: none; padding: 3rem 2rem; text-align: center; color: var(--text-muted); }
+</style>
+{% endblock %}
 
 {% block content %}
 <div style="padding-top: 2rem; max-width: 1300px; margin: 0 auto;">
 
     <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <h1 style="margin: 0; text-align: left; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main);">
-                <i class="fas fa-poll" style="color: var(--primary);"></i>
-                Class Results
-            </h1>
-            <p style="color: var(--text-muted); margin: 0.3rem 0 0;">
-                {{ preset[3] or 'General' }} &bull;
-                {{ preset[4] }} Year &bull;
-                Sem {{ preset[6] }} &bull;
-                Div {{ preset[5] }} &bull;
-                AY {{ preset[1] }}
-            </p>
+    <div class="results-header">
+        <div style="position: relative; z-index: 1;">
+            <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.75; margin-bottom: 0.4rem;">
+                <i class="fas fa-poll"></i> Class Results
+            </div>
+            <div class="header-title">{{ preset[3] or 'General' }}</div>
+            <div class="header-meta">
+                {{ preset[2] }} &bull; {{ preset[4] }} Year &bull; Semester {{ preset[6] }} &bull; Div {{ preset[5] }} &bull; AY {{ preset[1] }}
+            </div>
         </div>
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <div class="header-actions">
             <a href="{{ url_for('download_preset_results_csv', preset_id=preset[0]) }}"
-               class="btn btn-primary" style="background: var(--success);">
+               class="btn btn-primary" style="background: rgba(255,255,255,0.2); border: 1.5px solid rgba(255,255,255,0.3);">
                 <i class="fas fa-file-csv"></i> Export CSV
             </a>
             <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary"
-               style="background: rgba(255,255,255,0.1);">
+               style="background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2);">
                 <i class="fas fa-arrow-left"></i> Dashboard
             </a>
         </div>
     </div>
 
-    <!-- Stats Row -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-        <div class="glass card" style="text-align: center; padding: 1.2rem;">
-            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">{{ total_students }}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Students</div>
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card-mini">
+            <div class="num" style="color: var(--primary);">{{ total_students }}</div>
+            <div class="lbl">Students</div>
         </div>
-        <div class="glass card" style="text-align: center; padding: 1.2rem;">
-            <div style="font-size: 2rem; font-weight: 700; color: var(--success);">{{ "%.2f"|format(avg_sgpa) }}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Avg SGPA</div>
+        <div class="stat-card-mini">
+            <div class="num" style="color: var(--success);">{{ "%.2f"|format(avg_sgpa) }}</div>
+            <div class="lbl">Avg SGPA</div>
         </div>
-        <div class="glass card" style="text-align: center; padding: 1.2rem;">
-            <div style="font-size: 2rem; font-weight: 700; color: var(--info);">{{ pass_count }}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Passed</div>
+        <div class="stat-card-mini">
+            <div class="num" style="color: var(--info);">{{ pass_count }}</div>
+            <div class="lbl">Passed</div>
         </div>
-        <div class="glass card" style="text-align: center; padding: 1.2rem;">
-            <div style="font-size: 2rem; font-weight: 700; color: var(--danger);">{{ fail_count }}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">With Fail</div>
+        <div class="stat-card-mini">
+            <div class="num" style="color: var(--danger);">{{ fail_count }}</div>
+            <div class="lbl">With Fail</div>
         </div>
-        <div class="glass card" style="text-align: center; padding: 1.2rem;">
-            <div style="font-size: 2rem; font-weight: 700; color: var(--warning);">{{ subjects|length }}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Subjects</div>
+        <div class="stat-card-mini">
+            <div class="num" style="color: var(--warning);">{{ subjects|length }}</div>
+            <div class="lbl">Subjects</div>
         </div>
-        <div class="glass card" style="text-align: center; padding: 1.2rem;">
-            <div style="font-size: 2rem; font-weight: 700; color: var(--primary);">{{ total_credits }}</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Total Credits</div>
+        <div class="stat-card-mini">
+            <div class="num" style="color: var(--secondary);">{{ total_credits }}</div>
+            <div class="lbl">Total Credits</div>
         </div>
     </div>
 
     <!-- Filter Bar -->
-    <div class="glass card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
-        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 200px;">
-                <input type="text" id="tableFilter" placeholder="🔍 Filter by name or roll number…"
-                       onkeyup="filterTable()" style="width: 100%; padding: 0.6rem 1rem;">
-            </div>
-            <label style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.9rem; cursor: pointer;">
-                <input type="checkbox" id="failOnly" onchange="filterTable()" style="width: auto;"> Show fails only
-            </label>
-        </div>
+    <div class="filter-strip">
+        <input type="text" id="tableFilter" placeholder="🔍  Filter by name or roll number…" oninput="filterTable()">
+        <label class="fail-toggle">
+            <input type="checkbox" id="failOnly" onchange="filterTable()"> Show Fails Only
+        </label>
     </div>
 
     {% if not students_data %}
-    <div class="glass card" style="text-align: center; padding: 4rem;">
-        <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem; display: block;"></i>
-        <h3>No Results Yet</h3>
-        <p style="color: var(--text-muted);">No students have submitted marks for this class yet.</p>
+    <div class="results-table-wrap">
+        <div class="no-data-empty">
+            <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-dim); display: block; margin-bottom: 1rem;"></i>
+            <h3 style="color: var(--text-muted);">No Results Yet</h3>
+            <p style="color: var(--text-dim);">No students have submitted marks for this class.</p>
+        </div>
     </div>
     {% else %}
 
-    <!-- Results Table -->
-    <div class="glass table-container" style="overflow-x: auto;">
-        <table id="resultsTable" class="sortable-table" style="margin: 0; min-width: 700px;">
-            <thead style="position: sticky; top: 0; z-index: 5;">
+    <div class="results-table-wrap" style="overflow-x: auto;">
+        <table id="resultsTable" class="sortable-table" style="min-width: 750px;">
+            <thead>
                 <tr>
-                    <th style="white-space: nowrap;">Roll No.</th>
-                    <th style="white-space: nowrap;">Name</th>
+                    <th>Roll No.</th>
+                    <th>Name</th>
                     {% for sub in subjects %}
-                    <th style="white-space: nowrap; font-size: 0.8rem; max-width: 130px;" title="{{ sub[1] }}">
-                        {{ sub[1][:18] }}{% if sub[1]|length > 18 %}…{% endif %}
-                        <span style="display: block; font-weight: 400; opacity: 0.6; font-size: 0.7rem;">{{ sub[2] or '' }}</span>
+                    <th style="max-width: 120px; font-size: 0.7rem;" title="{{ sub[1] }}">
+                        {{ sub[1][:16] }}{% if sub[1]|length > 16 %}…{% endif %}
+                        <span style="display: block; font-weight: 400; opacity: 0.55; font-size: 0.65rem;">{{ sub[2] or '' }}</span>
                     </th>
                     {% endfor %}
-                    <th style="white-space: nowrap; color: var(--success);">SGPA</th>
-                    <th style="white-space: nowrap;">Status</th>
-                    <th style="white-space: nowrap;">Detail</th>
+                    <th style="color: var(--success); text-align: center;">SGPA</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: center;">Detail</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in students_data %}
                 <tr class="student-row {% if row.has_fail %}has-fail{% endif %}"
                     data-roll="{{ row.roll }}" data-name="{{ row.name }}">
-                    <td style="font-weight: 600; color: var(--primary);">{{ row.roll or '–' }}</td>
-                    <td style="font-weight: 500;">{{ row.name }}</td>
+                    <td class="roll-cell">{{ row.roll or '–' }}</td>
+                    <td class="name-cell">{{ row.name }}</td>
                     {% for sub in subjects %}
                     <td style="text-align: center;">
                         {% if row.marks[sub[0]] %}
                             {% set m = row.marks[sub[0]] %}
                             <span class="grade-badge {{ m.grade }}" title="{{ '%.1f'|format(m.percentage) }}%">{{ m.grade }}</span>
-                            <span style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">{{ m.obtained|int }}/{{ m.max|int }}</span>
+                            <span style="display: block; font-size: 0.68rem; color: var(--text-muted); margin-top: 2px;">
+                                {{ m.obtained|int }}/{{ m.max|int }}
+                            </span>
                         {% else %}
                             <span style="color: var(--text-dim);">–</span>
                         {% endif %}
                     </td>
                     {% endfor %}
-                    <td style="text-align: center; font-weight: 700;
-                        color: {% if row.sgpa >= 8 %}var(--success){% elif row.sgpa >= 6 %}var(--info){% elif row.sgpa >= 4 %}var(--warning){% else %}var(--danger){% endif %};">
+                    <td class="sgpa-cell" style="color: {% if row.sgpa >= 8 %}var(--success){% elif row.sgpa >= 6 %}var(--info){% elif row.sgpa >= 4 %}var(--warning){% else %}var(--danger){% endif %};">
                         {{ "%.2f"|format(row.sgpa) }}
                     </td>
                     <td style="text-align: center;">
                         {% if row.has_fail %}
-                            <span style="background: var(--danger); color: white; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem;">FAIL</span>
+                            <span class="status-fail">FAIL</span>
                         {% else %}
-                            <span style="background: var(--success); color: white; padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem;">PASS</span>
+                            <span class="status-pass">PASS</span>
                         {% endif %}
                     </td>
                     <td style="text-align: center;">
-                        <a href="{{ url_for('view_student_marks', user_id=row.user_id) }}" class="btn-icon" title="Full Report">
+                        <a href="{{ url_for('view_student_marks', user_id=row.user_id) }}" class="btn-icon" title="Full Report"
+                           style="background: rgba(79,70,229,0.08); color: var(--primary); border-color: rgba(79,70,229,0.2);">
                             <i class="fas fa-external-link-alt"></i>
                         </a>
                     </td>
@@ -137,34 +243,28 @@
             </tbody>
         </table>
     </div>
-
-    <p id="noResultsMsg" style="display: none; text-align: center; padding: 2rem; color: var(--text-muted);">
+    <div id="noResultsMsg" class="no-match-msg">
+        <i class="fas fa-search" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;"></i>
         No matching students found.
-    </p>
-
+    </div>
     {% endif %}
 </div>
 
 <script>
     function filterTable() {
-        var input = document.getElementById("tableFilter").value.toUpperCase();
-        var failOnly = document.getElementById("failOnly").checked;
-        var rows = document.querySelectorAll("#resultsTable tbody tr");
-        var visible = 0;
-
-        rows.forEach(function(row) {
-            var roll = row.dataset.roll ? row.dataset.roll.toUpperCase() : "";
-            var name = row.dataset.name ? row.dataset.name.toUpperCase() : "";
-            var matchText = roll.indexOf(input) > -1 || name.indexOf(input) > -1;
-            var matchFail = !failOnly || row.classList.contains("has-fail");
-            if (matchText && matchFail) {
-                row.style.display = "";
-                visible++;
-            } else {
-                row.style.display = "none";
-            }
+        const input = document.getElementById("tableFilter").value.toUpperCase();
+        const failOnly = document.getElementById("failOnly").checked;
+        const rows = document.querySelectorAll("#resultsTable tbody tr");
+        let visible = 0;
+        rows.forEach(row => {
+            const roll = (row.dataset.roll || "").toUpperCase();
+            const name = (row.dataset.name || "").toUpperCase();
+            const matchText = roll.includes(input) || name.includes(input);
+            const matchFail = !failOnly || row.classList.contains("has-fail");
+            const show = matchText && matchFail;
+            row.style.display = show ? "" : "none";
+            if (show) visible++;
         });
-
         document.getElementById("noResultsMsg").style.display = visible === 0 ? "block" : "none";
     }
 </script>

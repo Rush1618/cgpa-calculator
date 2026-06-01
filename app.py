@@ -202,13 +202,22 @@ def additional_info():
     if 'user' not in session:
         return redirect(url_for('login'))
 
+    ENROLL_PREFIX = 'MU034112024020'
+
     if request.method == 'POST':
         name = request.form['name']
         roll_number = request.form['roll_number']
-        enrollment_number = request.form['enrollment_number']
+        enrollment_raw = request.form.get('enrollment_number', '').strip()
         department = request.form['department']
         academic_year = request.form['academic_year']
         current_year = request.form['current_year']
+
+        # Server-side safety: ensure prefix is always present
+        if not enrollment_raw.startswith(ENROLL_PREFIX):
+            # If user somehow bypassed JS, treat whatever they typed as the suffix
+            enrollment_number = ENROLL_PREFIX + enrollment_raw
+        else:
+            enrollment_number = enrollment_raw
 
         conn = create_connection()
         cursor = conn.cursor()
@@ -232,6 +241,8 @@ def additional_info():
 
 
     return render_template('additional_info.html')
+
+
 
 @app.route('/view_profile')
 def view_profile():
@@ -898,7 +909,7 @@ def view_result():
             
         user_id = user_res[0]
 
-        # Fetch subject results joined with subject and preset info
+        # Fetch ALL subject results across ALL semesters, joined with subject and preset info
         cursor.execute("""
             SELECT 
                 p.id as preset_id,
@@ -911,19 +922,20 @@ def view_result():
                 sr.percentage, 
                 sr.grade, 
                 sr.grade_point,
-                s.credits
+                s.credits,
+                s.code,
+                s.id as subject_id
             FROM subject_results sr
             JOIN subjects s ON sr.subject_id = s.id
             JOIN presets p ON s.preset_id = p.id
             WHERE sr.user_id = ?
-            ORDER BY p.year DESC, p.semester DESC
+            ORDER BY p.year ASC, p.semester ASC
         """, (user_id,))
         
         raw_results = cursor.fetchall()
         
-        # Group results by preset (Semester)
+        # Group results by preset (one preset = one semester block)
         grouped_results = {}
-        # Structure: { preset_id: { 'details': preset_details, 'subjects': [], 'sgpa': 0.0 } }
         
         for row in raw_results:
             preset_id = row[0]
@@ -937,9 +949,10 @@ def view_result():
                     'total_points': 0
                 }
             
-            # Add subject info
             grouped_results[preset_id]['subjects'].append({
+                'id': row[12],
                 'name': row[4],
+                'code': row[11] or '',
                 'obtained': row[5],
                 'max': row[6],
                 'percentage': row[7],
@@ -948,19 +961,27 @@ def view_result():
                 'credits': row[10]
             })
             
-            # Accumulate for SGPA
             grouped_results[preset_id]['total_credits'] += row[10]
-            grouped_results[preset_id]['total_points'] += (row[9] * row[10]) # grade_point * credits
+            grouped_results[preset_id]['total_points'] += (row[9] * row[10])
 
-        # Calculate SGPA for each group
+        # Calculate SGPA per semester + accumulate for overall CGPA
+        all_credits = 0
+        all_points = 0
         for pid, data in grouped_results.items():
             if data['total_credits'] > 0:
                 data['sgpa'] = round(data['total_points'] / data['total_credits'], 2)
             else:
                 data['sgpa'] = 0.0
+            all_credits += data['total_credits']
+            all_points += data['total_points']
+
+        # Overall CGPA = weighted average across all semesters
+        overall_cgpa = round(all_points / all_credits, 2) if all_credits > 0 else 0.0
 
         conn.close()
-        return render_template('result.html', grouped_results=grouped_results)
+        return render_template('result.html',
+                               grouped_results=grouped_results,
+                               overall_cgpa=overall_cgpa)
         
     except Exception as e:
         import traceback

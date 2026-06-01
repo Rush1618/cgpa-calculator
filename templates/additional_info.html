@@ -1,57 +1,200 @@
 {% extends 'base.html' %}
 
-{% block title %}Complete Profile{% endblock %}
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block head %}
+<style>
+    .onboarding-wrap {
+        min-height: 85vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+    .onboarding-card {
+        width: 100%;
+        max-width: 480px;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        padding: 2.5rem 2.25rem;
+        backdrop-filter: blur(20px);
+        box-shadow: var(--shadow-xl);
+        position: relative;
+        overflow: hidden;
+    }
+    .onboarding-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+    }
+    .card-icon {
+        width: 64px; height: 64px;
+        border-radius: 20px;
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.7rem; color: white;
+        margin: 0 auto 1.25rem;
+        box-shadow: 0 8px 24px rgba(79,70,229,0.3);
+    }
+    .onboarding-title { font-size: 1.6rem; font-weight: 800; text-align: center; margin: 0; color: var(--text-main); }
+    .onboarding-subtitle { text-align: center; color: var(--text-muted); margin: 0.4rem 0 2rem; font-size: 0.92rem; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* Enrollment prefix + last4 combo */
+    .enrollment-combo {
+        display: flex;
+        align-items: stretch;
+        border: 1.5px solid var(--glass-border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bg-lighter);
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .enrollment-combo:focus-within {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+    .enrollment-prefix {
+        background: rgba(79,70,229,0.06);
+        color: var(--text-muted);
+        padding: 0.9rem 0.9rem;
+        font-family: monospace;
+        font-size: 0.88rem;
+        font-weight: 600;
+        white-space: nowrap;
+        border-right: 1.5px solid var(--glass-border);
+        display: flex;
+        align-items: center;
+        letter-spacing: 0.02em;
+        user-select: none;
+    }
+    .enrollment-suffix {
+        flex: 1;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        padding: 0.9rem 1rem;
+        font-family: monospace;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--primary);
+        letter-spacing: 0.12em;
+        min-width: 0;
+    }
+    .enrollment-suffix::placeholder { color: var(--text-dim); font-weight: 400; letter-spacing: 0; }
+    .enrollment-suffix:focus { outline: none; box-shadow: none; }
+
+    .live-preview-box {
+        margin-top: 0.5rem;
+        padding: 0.55rem 0.85rem;
+        background: rgba(79,70,229,0.05);
+        border: 1px solid rgba(79,70,229,0.12);
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-family: monospace;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .live-preview-box span { color: var(--primary); font-weight: 700; }
+
+    /* Hidden actual input */
+    .submit-btn { width: 100%; padding: 1.05rem; font-size: 1rem; margin-top: 1.25rem; }
+    .step-indicator {
+        display: flex;
+        gap: 0.4rem;
+        justify-content: center;
+        margin-bottom: 1.75rem;
+    }
+    .step-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--glass-border);
+        transition: background 0.3s;
+    }
+    .step-dot.active { background: var(--primary); width: 24px; border-radius: 4px; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="login-container">
-    <div class="glass login-card">
-        <h1>Almost There!</h1>
-        <p style="color: var(--text-muted); margin-bottom: 2rem;">Please provide your details to continue.</p>
+<div class="onboarding-wrap">
+    <div class="onboarding-card">
+        <div class="card-icon"><i class="fas fa-user-edit"></i></div>
+        <div class="step-indicator">
+            <div class="step-dot"></div>
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+        </div>
+        <h1 class="onboarding-title">Almost There!</h1>
+        <p class="onboarding-subtitle">Tell us a bit about yourself to activate your account.</p>
 
         <form action="{{ url_for('additional_info') }}" method="post">
-            <div class="form-group" style="text-align: left;">
-                <label>Full Name</label>
-                <input type="text" name="name" value="{{ session.get('user', {}).get('name', '') }}" required>
+            <!-- Hidden real enrollment number field submitted to server -->
+            <input type="hidden" name="enrollment_number" id="finalEnrollment">
+
+            <!-- Full Name -->
+            <div class="form-group">
+                <label><i class="fas fa-user" style="color: var(--primary); margin-right: 0.4rem;"></i> Full Name</label>
+                <input type="text" name="name" value="{{ session.get('user', {}).get('name', '') }}"
+                    placeholder="e.g. Rushabh Sharma" required>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group" style="text-align: left;">
-                    <label>Roll Number</label>
-                    <input type="text" name="roll_number" required>
+            <!-- Roll + Enrollment row -->
+            <div class="form-grid-2">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label><i class="fas fa-id-badge" style="color: var(--primary); margin-right: 0.4rem;"></i> Roll Number</label>
+                    <input type="text" name="roll_number" placeholder="e.g. 101" required>
                 </div>
-                <div class="form-group" style="text-align: left;">
-                    <label>Enrollment Number</label>
-                    <input type="text" name="enrollment_number" required>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label><i class="fas fa-fingerprint" style="color: var(--primary); margin-right: 0.4rem;"></i> Enrollment (Last 4)</label>
+                    <div class="enrollment-combo">
+                        <div class="enrollment-prefix">MU034112024020</div>
+                        <input type="text" id="last4Input" class="enrollment-suffix"
+                            placeholder="XXXX" maxlength="4" pattern="\d{4}"
+                            oninput="updateEnrollment(this)"
+                            autocomplete="off" required>
+                    </div>
+                    <div class="live-preview-box" id="enrollPreview">
+                        <i class="fas fa-eye" style="font-size: 0.75rem;"></i>
+                        Full: <span id="previewText">MU034112024020????</span>
+                    </div>
                 </div>
-
             </div>
 
-            <div class="form-group" style="text-align: left;">
-                <label>Department</label>
+            <!-- Department -->
+            <div class="form-group" style="margin-top: 1.25rem;">
+                <label><i class="fas fa-graduation-cap" style="color: var(--primary); margin-right: 0.4rem;"></i> Department</label>
                 <select name="department" required>
                     <option value="" disabled selected>Select Department</option>
                     <option value="Computer Engineering">Computer Engineering (CO)</option>
-                    <option value="AI & ML">AI & ML (AIML)</option>
-                    <option value="Electronics & Computer Science">Electronics & Computer Science (ECS)</option>
+                    <option value="AI &amp; ML">AI &amp; ML (AIML)</option>
+                    <option value="Electronics &amp; Computer Science">Electronics &amp; Computer Science (ECS)</option>
                     <option value="Mechanical Engineering">Mechanical Engineering</option>
                     <option value="Information Technology">Information Technology (IT)</option>
                 </select>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group" style="text-align: left;">
-                    <label>Academic Year</label>
+            <!-- Academic Year + Current Year -->
+            <div class="form-grid-2" style="margin-top: 0.25rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label><i class="fas fa-calendar-alt" style="color: var(--primary); margin-right: 0.4rem;"></i> Academic Year</label>
                     <select name="academic_year" required>
-                        <option value="" disabled selected>Select Year</option>
+                        <option value="" disabled selected>Select</option>
                         <option value="2023-2024">2023-2024</option>
                         <option value="2024-2025">2024-2025</option>
                         <option value="2025-2026">2025-2026</option>
+                        <option value="2026-2027">2026-2027</option>
                     </select>
                 </div>
-                <div class="form-group" style="text-align: left;">
-                    <label>Current Year</label>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label><i class="fas fa-layer-group" style="color: var(--primary); margin-right: 0.4rem;"></i> Current Year</label>
                     <select name="current_year" required>
-                        <option value="" disabled selected>Select Year</option>
+                        <option value="" disabled selected>Select</option>
                         <option value="FE">FE (First Year)</option>
                         <option value="SE">SE (Second Year)</option>
                         <option value="TE">TE (Third Year)</option>
@@ -60,9 +203,39 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Save &
-                Continue</button>
+            <button type="submit" class="btn btn-primary submit-btn" onclick="return prepareSubmit()">
+                <i class="fas fa-check-circle"></i> Save &amp; Continue
+            </button>
         </form>
     </div>
 </div>
+
+<script>
+    const PREFIX = 'MU034112024020';
+
+    function updateEnrollment(input) {
+        // Only allow digits
+        input.value = input.value.replace(/\D/g, '');
+        const suffix = input.value;
+        const full = PREFIX + (suffix || '????');
+        document.getElementById('previewText').textContent = full;
+        document.getElementById('finalEnrollment').value = PREFIX + suffix;
+    }
+
+    function prepareSubmit() {
+        const suffix = document.getElementById('last4Input').value.trim();
+        if (suffix.length !== 4 || !/^\d{4}$/.test(suffix)) {
+            alert('Please enter exactly 4 digits for the Enrollment Number.');
+            document.getElementById('last4Input').focus();
+            return false;
+        }
+        document.getElementById('finalEnrollment').value = PREFIX + suffix;
+        return true;
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('finalEnrollment').value = PREFIX;
+    });
+</script>
 {% endblock %}

@@ -49,8 +49,17 @@
                     <input type="text" name="roll_number" value="{{ student[1] }}" required placeholder="e.g. 101">
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                    <label><i class="fas fa-university" style="margin-right: 0.4rem; color: var(--primary);"></i> Enrollment No.</label>
-                    <input type="text" name="enrollment_number" value="{{ student[2] or '' }}" required placeholder="e.g. EN123456">
+                    <label><i class="fas fa-fingerprint" style="margin-right: 0.4rem; color: var(--primary);"></i> Enrollment No.</label>
+                    <input type="text" name="enrollment_number" id="adminEnrollInput"
+                           value="{{ student[2] or '' }}"
+                           placeholder="MU034112024020XXXX"
+                           style="font-family: monospace; letter-spacing: 0.05em; font-size: 0.9rem;"
+                           oninput="syncEnrollPreview()">
+                    <div style="margin-top: 0.4rem; font-size: 0.75rem; color: var(--text-dim); display: flex; align-items: center; gap: 0.4rem;">
+                        <i class="fas fa-shield-alt" style="color: var(--info);"></i>
+                        <span>Admin edit — full number. Standard prefix: <code style="background: rgba(79,70,229,0.08); padding: 0.1rem 0.4rem; border-radius: 4px; color: var(--primary);">MU034112024020</code></span>
+                    </div>
+                    <div id="adminEnrollPreview" style="display:none; margin-top: 0.35rem; padding: 0.45rem 0.75rem; background: rgba(79,70,229,0.05); border: 1px solid rgba(79,70,229,0.12); border-radius: 8px; font-size: 0.78rem; font-family: monospace; color: var(--primary); font-weight: 700;"></div>
                 </div>
             </div>
 
@@ -101,20 +110,41 @@
 </div>
 
 <script>
+    const ENROLL_PREFIX = 'MU034112024020';
+
     function updateLivePreview() {
         const nameInput = document.getElementById('studentNameInput').value;
         const deptSelect = document.getElementById('deptSelect').value;
         const yearSelect = document.getElementById('yearSelect').value;
-        
+
         // Update Live Name
         document.getElementById('liveName').innerText = nameInput || "New Student";
-        
+
         // Update Live Avatar Initial
         const initial = nameInput ? nameInput.trim()[0].toUpperCase() : "S";
         document.getElementById('liveAvatar').innerText = initial;
-        
+
         // Update Live Subtitle Details
         document.getElementById('liveDetails').innerHTML = `${yearSelect} Year &bull; ${deptSelect}`;
     }
+
+    function syncEnrollPreview() {
+        const input = document.getElementById('adminEnrollInput');
+        const preview = document.getElementById('adminEnrollPreview');
+        const val = input.value.trim();
+        if (!val) { preview.style.display = 'none'; return; }
+
+        if (val.startsWith(ENROLL_PREFIX)) {
+            const suffix = val.slice(ENROLL_PREFIX.length);
+            preview.innerHTML = `<span style="color:var(--text-muted)">${ENROLL_PREFIX}</span><span style="color:var(--primary);font-size:1rem;">${suffix}</span>`;
+        } else {
+            preview.innerHTML = val;
+        }
+        preview.style.display = 'block';
+    }
+
+    // Run on load if there's an existing value
+    window.addEventListener('DOMContentLoaded', () => { syncEnrollPreview(); });
+
 </script>
 {% endblock %}

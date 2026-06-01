@@ -2,50 +2,151 @@
 
 {% block title %}Grading Rules{% endblock %}
 
-{% block content %}
-<div style="padding-top: 2rem; max-width: 800px; margin: 0 auto;">
-    <h1>Grading System</h1>
-    <p style="text-align: center; color: var(--text-muted); margin-bottom: 2rem;">Define percentage ranges and
-        corresponding grades.</p>
+{% block head %}
+<style>
+    .grading-page { max-width: 860px; margin: 0 auto; padding-top: 2rem; }
+    .page-intro { text-align: center; margin-bottom: 2.5rem; }
+    .grade-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .grade-row-card {
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr 80px 80px;
+        gap: 0.75rem;
+        align-items: center;
+        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+    .grade-row-card::before {
+        content: '';
+        position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+        background: linear-gradient(180deg, var(--primary), var(--secondary));
+        border-radius: 4px 0 0 4px;
+    }
+    .grade-row-card:hover { box-shadow: 0 6px 24px rgba(79,70,229,0.1); transform: translateX(4px); }
+    .grade-row-card label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.3rem; }
+    .grade-row-card input { padding: 0.6rem 0.85rem; font-size: 0.95rem; width: 100%; border-radius: 10px; }
+    .grade-preview {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 40px; height: 40px; border-radius: 10px;
+        font-weight: 800; font-size: 0.95rem; color: white;
+        background: var(--primary);
+        transition: background 0.3s;
+    }
+    .table-form { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; overflow: hidden; }
+    .table-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center; }
+    .save-strip { padding: 1.5rem 2rem; border-top: 1px solid var(--glass-border); display: flex; justify-content: flex-end; gap: 1rem; align-items: center; }
+    .grading-table { width: 100%; border-collapse: collapse; }
+    .grading-table thead th {
+        padding: 0.85rem 1.25rem;
+        background: rgba(79,70,229,0.04);
+        color: var(--text-muted);
+        font-size: 0.77rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    .grading-table tbody td { padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--glass-border); }
+    .grading-table tbody tr:last-child td { border-bottom: none; }
+    .grading-table tbody tr { transition: background 0.15s; }
+    .grading-table tbody tr:hover { background: rgba(79,70,229,0.02); }
+    .grading-table tbody input { padding: 0.55rem 0.75rem; border-radius: 8px; font-size: 0.9rem; }
 
-    <div class="glass card">
-        <form action="{{ url_for('manage_grading_rules') }}" method="post">
-            <div class="table-container" style="background: transparent; border: none;">
-                <table>
+    .grade-tag-preview {
+        padding: 0.25rem 0.75rem;
+        border-radius: 30px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: white;
+        background: var(--success);
+        display: inline-block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grading-page">
+    <div class="page-intro">
+        <h1>Grading System</h1>
+        <p style="color: var(--text-muted); font-size: 1.05rem;">Define percentage ranges and corresponding grades for your institution.</p>
+    </div>
+
+    <form action="{{ url_for('manage_grading_rules') }}" method="post">
+        <div class="table-form">
+            <div class="table-header">
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem;"><i class="fas fa-ruler" style="color: var(--primary);"></i> Grade Boundaries</h3>
+                    <p style="margin: 0.2rem 0 0; font-size: 0.85rem; color: var(--text-muted);">{{ rules|length }} grade bands defined</p>
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding: 0.7rem 1.5rem;">
+                    <i class="fas fa-save"></i> Save Rules
+                </button>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="grading-table sortable-table">
                     <thead>
                         <tr>
+                            <th>Grade</th>
+                            <th>Grade Point</th>
                             <th>Min %</th>
                             <th>Max %</th>
-                            <th>Grade</th>
-                            <th>Points</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for rule in rules %}
                         <tr>
                             <input type="hidden" name="rule_id" value="{{ rule[0] }}">
-                            <td><input type="number" step="0.01" name="min_percentage" value="{{ rule[1] }}"
-                                    style="width: 80px;">
+                            <td>
+                                <span class="grade-badge {{ rule[3] }}" style="font-size: 0.95rem;">{{ rule[3] }}</span>
+                                <input type="text" name="grade" value="{{ rule[3] }}" style="width: 70px; display: inline-block; margin-left: 0.75rem; text-transform: uppercase; font-weight: 700;">
                             </td>
-                            <td><input type="number" step="0.01" name="max_percentage" value="{{ rule[2] }}"
-                                    style="width: 80px;">
+                            <td>
+                                <input type="number" step="0.01" name="grade_point" value="{{ rule[4] }}" style="width: 90px; font-weight: 600; color: var(--primary);">
                             </td>
-                            <td><input type="text" name="grade" value="{{ rule[3] }}"
-                                    style="width: 60px; text-transform: uppercase;"></td>
-                            <td><input type="number" step="0.01" name="grade_point" value="{{ rule[4] }}"
-                                    style="width: 60px;"></td>
+                            <td>
+                                <input type="number" step="0.01" name="min_percentage" value="{{ rule[1] }}" style="width: 90px;">
+                            </td>
+                            <td>
+                                <input type="number" step="0.01" name="max_percentage" value="{{ rule[2] }}" style="width: 90px;">
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
-            <div style="margin-top: 1.5rem; text-align: right;">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Save Rules
+            <div class="save-strip">
+                <span style="font-size: 0.83rem; color: var(--text-dim);">
+                    <i class="fas fa-info-circle"></i> Changes apply to all future mark calculations.
+                </span>
+                <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, var(--success), #059669);">
+                    <i class="fas fa-check"></i> Save All Changes
                 </button>
             </div>
-        </form>
+        </div>
+    </form>
+
+    <!-- Legend -->
+    <div class="glass card" style="margin-top: 2rem; padding: 1.5rem;">
+        <h3 style="margin: 0 0 1rem; font-size: 1rem;"><i class="fas fa-palette" style="color: var(--primary);"></i> Grade Preview</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            {% for rule in rules %}
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.4rem; min-width: 60px;">
+                <span class="grade-badge {{ rule[3] }}" style="font-size: 0.9rem;">{{ rule[3] }}</span>
+                <span style="font-size: 0.72rem; color: var(--text-dim);">{{ rule[4] }} pts</span>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}
