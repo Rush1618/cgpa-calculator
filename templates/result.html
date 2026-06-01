@@ -281,8 +281,20 @@
         </div>
         <div class="cgpa-stats">
             <div class="cgpa-stat-pill">
-                <span class="v">{{ sem_count }}</span>
-                <span class="l">Semester{{ 's' if sem_count != 1 else '' }}</span>
+                <span class="v">
+                    {% if sem_count > 1 %}
+                        {% set sems = [] %}
+                        {% for pid, d in grouped_results.items() %}
+                            {% if d.semester not in sems %}
+                                {% set _ = sems.append(d.semester | string) %}
+                            {% endif %}
+                        {% endfor %}
+                        Sem {{ sems | join(', ') }}
+                    {% else %}
+                        {% for pid, d in grouped_results.items() %}Sem {{ d.semester }}{% endfor %}
+                    {% endif %}
+                </span>
+                <span class="l">{% if sem_count > 1 %}Active Semesters{% else %}Semester{% endif %}</span>
             </div>
             <div class="cgpa-stat-pill">
                 <span class="v">{{ total_subjects.v }}</span>

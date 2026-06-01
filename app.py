@@ -1410,7 +1410,30 @@ def download_student_csv(user_id):
     student_name = student[0]
 
     # Get Marks Data
-    # ... (skipping context)
+    cursor.execute("""
+        SELECT s.name, s.code, c.name, sm.marks_obtained, c.max_marks
+        FROM student_marks sm
+        JOIN components c ON sm.component_id = c.id
+        JOIN subjects s ON c.subject_id = s.id
+        WHERE sm.user_id = ?
+        ORDER BY s.name, c.name
+    """, (user_id,))
+    marks_data = cursor.fetchall()
+    
+    # Get Result Data
+    cursor.execute("""
+        SELECT s.name, sr.percentage, sr.grade, sr.grade_point
+        FROM subject_results sr
+        JOIN subjects s ON sr.subject_id = s.id
+        WHERE sr.user_id = ?
+    """, (user_id,))
+    results_data = cursor.fetchall()
+    
+    cursor.execute("SELECT cgpa FROM cgpa WHERE user_id=?", (user_id,))
+    cgpa_row = cursor.fetchone()
+    cgpa = cgpa_row[0] if cgpa_row else "N/A"
+
+    conn.close()
 
     # Generate CSV
     output = io.StringIO()
