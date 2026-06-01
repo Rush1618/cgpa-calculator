@@ -464,6 +464,196 @@ def duplicate_preset(preset_id):
     return redirect(url_for('admin_dashboard'))
 
 
+@app.route('/admin/presets/<int:preset_id>/results')
+def view_preset_results(preset_id):
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets WHERE id = ?", (preset_id,))
+    preset = cursor.fetchone()
+    if not preset:
+        conn.close()
+        flash("Preset not found", "error")
+        return redirect(url_for('admin_dashboard'))
+
+    cursor.execute("SELECT id, name, code, credits FROM subjects WHERE preset_id = ?", (preset_id,))
+    subjects = cursor.fetchall()
+    total_credits = sum(sub[3] for sub in subjects) if subjects else 0
+
+    students_data = []
+    total_students = 0
+    pass_count = 0
+    fail_count = 0
+    avg_sgpa = 0.0
+
+    if subjects:
+        subject_ids = [s[0] for s in subjects]
+        placeholders = ','.join(['?'] * len(subject_ids))
+        cursor.execute(f"""
+            SELECT DISTINCT u.id, u.name, u.roll_number 
+            FROM users u
+            JOIN subject_results sr ON u.id = sr.user_id
+            WHERE sr.subject_id IN ({placeholders})
+            ORDER BY u.roll_number
+        """, subject_ids)
+        students = cursor.fetchall()
+        total_students = len(students)
+        
+        total_sgpa_sum = 0.0
+        
+        for student in students:
+            user_id, student_name, roll_number = student
+            
+            cursor.execute(f"""
+                SELECT sr.subject_id, sr.total_obtained_marks, sr.total_max_marks, sr.percentage, sr.grade, sr.grade_point, s.credits
+                FROM subject_results sr
+                JOIN subjects s ON sr.subject_id = s.id
+                WHERE sr.user_id = ? AND sr.subject_id IN ({placeholders})
+            """, [user_id] + subject_ids)
+            marks_rows = cursor.fetchall()
+            
+            marks_map = {}
+            total_credits = 0.0
+            total_points = 0.0
+            has_fail = False
+            
+            for m_row in marks_rows:
+                sub_id, obtained, max_m, percentage, grade, grade_point, credits = m_row
+                marks_map[sub_id] = {
+                    'grade': grade,
+                    'percentage': percentage,
+                    'obtained': obtained,
+                    'max': max_m
+                }
+                total_credits += credits
+                total_points += grade_point * credits
+                if grade == 'F':
+                    has_fail = True
+            
+            sgpa = total_points / total_credits if total_credits > 0 else 0.0
+            total_sgpa_sum += sgpa
+            
+            if has_fail:
+                fail_count += 1
+            else:
+                pass_count += 1
+                
+            students_data.append({
+                'user_id': user_id,
+                'name': student_name,
+                'roll': roll_number,
+                'marks': marks_map,
+                'sgpa': sgpa,
+                'has_fail': has_fail
+            })
+            
+        if total_students > 0:
+            avg_sgpa = total_sgpa_sum / total_students
+
+    conn.close()
+    return render_template(
+        'preset_results.html',
+        preset=preset,
+        subjects=subjects,
+        students_data=students_data,
+        total_students=total_students,
+        pass_count=pass_count,
+        fail_count=fail_count,
+        avg_sgpa=avg_sgpa,
+        total_credits=total_credits
+    )
+
+
+@app.route('/admin/presets/<int:preset_id>/results/csv')
+def download_preset_results_csv(preset_id):
+    admin_emails = [e.strip() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip()]
+    if 'user' not in session or session['user']['email'] not in admin_emails:
+        return redirect(url_for('index'))
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets WHERE id = ?", (preset_id,))
+    preset = cursor.fetchone()
+    if not preset:
+        conn.close()
+        flash("Preset not found", "error")
+        return redirect(url_for('admin_dashboard'))
+        
+    cursor.execute("SELECT id, name, code, credits FROM subjects WHERE preset_id = ?", (preset_id,))
+    subjects = cursor.fetchall()
+    
+    import csv
+    import io
+    from flask import make_response
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    headers = ['Roll Number', 'Name'] + [f"{sub[1]} (Grade)" for sub in subjects] + ['SGPA', 'Status']
+    writer.writerow(headers)
+    
+    if subjects:
+        subject_ids = [s[0] for s in subjects]
+        placeholders = ','.join(['?'] * len(subject_ids))
+        cursor.execute(f"""
+            SELECT DISTINCT u.id, u.name, u.roll_number 
+            FROM users u
+            JOIN subject_results sr ON u.id = sr.user_id
+            WHERE sr.subject_id IN ({placeholders})
+            ORDER BY u.roll_number
+        """, subject_ids)
+        students = cursor.fetchall()
+        
+        for student in students:
+            user_id, student_name, roll_number = student
+            
+            cursor.execute(f"""
+                SELECT sr.subject_id, sr.percentage, sr.grade, sr.grade_point, s.credits
+                FROM subject_results sr
+                JOIN subjects s ON sr.subject_id = s.id
+                WHERE sr.user_id = ? AND sr.subject_id IN ({placeholders})
+            """, [user_id] + subject_ids)
+            marks_rows = cursor.fetchall()
+            
+            marks_map = {}
+            total_credits = 0.0
+            total_points = 0.0
+            has_fail = False
+            
+            for m_row in marks_rows:
+                sub_id, percentage, grade, grade_point, credits = m_row
+                marks_map[sub_id] = grade
+                total_credits += credits
+                total_points += grade_point * credits
+                if grade == 'F':
+                    has_fail = True
+                    
+            sgpa = total_points / total_credits if total_credits > 0 else 0.0
+            status = 'FAIL' if has_fail else 'PASS'
+            
+            row_data = [roll_number, student_name]
+            for sub in subjects:
+                grade = marks_map.get(sub[0], '-')
+                row_data.append(grade)
+            row_data.append(f"{sgpa:.2f}")
+            row_data.append(status)
+            
+            writer.writerow(row_data)
+            
+    conn.close()
+    
+    preset_name = f"{preset[3] or 'General'}_{preset[4]}Yr_Sem{preset[6]}".replace(" ", "_")
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = f"attachment; filename=ClassResults_{preset_name}.csv"
+    response.headers["Content-type"] = "text/csv"
+    return response
+
+
 @app.route('/admin')
 def admin_dashboard():
     # Admin Logic from ENV (List supported)
@@ -675,11 +865,11 @@ def student_dashboard():
 
     # GET request: Fetch presets filtered by user's current year and department
     if current_year and department:
-        cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets WHERE year=? AND department=?", (current_year, department))
+        cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets WHERE year=? AND department=?", (current_year, department))
     elif current_year:
-        cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets WHERE year=?", (current_year,))
+        cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets WHERE year=?", (current_year,))
     else:
-        cursor.execute("SELECT id, academic_year, course, year, division, semester FROM presets")
+        cursor.execute("SELECT id, academic_year, course, department, year, division, semester FROM presets")
     presets = cursor.fetchall()
     
     conn.close()
@@ -885,26 +1075,55 @@ def edit_subject(subject_id):
         credits = request.form['credits']
         
         cursor.execute("UPDATE subjects SET name=?, code=?, credits=? WHERE id=?", (name, code, credits, subject_id))
+        
+        # Component management
+        cursor.execute("SELECT name FROM components WHERE subject_id = ?", (subject_id,))
+        existing_components = {row[0] for row in cursor.fetchall()}
+        
+        selected_components = request.form.getlist('components')
+        
+        # 1. Delete deselected components
+        for comp_name in list(existing_components):
+            if comp_name not in selected_components:
+                cursor.execute("SELECT id FROM components WHERE subject_id = ? AND name = ?", (subject_id, comp_name))
+                comp_res = cursor.fetchone()
+                if comp_res:
+                    cursor.execute("DELETE FROM student_marks WHERE component_id = ?", (comp_res[0],))
+                cursor.execute("DELETE FROM components WHERE subject_id = ? AND name = ?", (subject_id, comp_name))
+                
+        # 2. Insert or update selected components
+        for comp_name in selected_components:
+            max_marks = request.form.get(f'max_marks_{comp_name}')
+            if comp_name in existing_components:
+                cursor.execute("UPDATE components SET max_marks = ? WHERE subject_id = ? AND name = ?", (max_marks, subject_id, comp_name))
+            else:
+                cursor.execute("INSERT INTO components (subject_id, name, max_marks) VALUES (?, ?, ?)", (subject_id, comp_name, max_marks))
+        
         conn.commit()
         conn.close()
         
-        # Determine redirect target (preset_id is needed for manage_subjects)
         preset_id = request.args.get('preset_id')
         if preset_id:
              return redirect(url_for('manage_subjects', preset_id=preset_id))
         else:
-             # Fallback if preset_id lost, though usually passed in query string
              return redirect(url_for('admin_dashboard'))
 
     cursor.execute("SELECT * FROM subjects WHERE id=?", (subject_id,))
     subject = cursor.fetchone()
-    conn.close()
     
     if not subject:
+         conn.close()
          flash('Subject not found', 'error')
          return redirect(url_for('admin_dashboard'))
-
-    return render_template('edit_subject.html', subject=subject)
+         
+    cursor.execute("SELECT name, max_marks FROM components WHERE subject_id=?", (subject_id,))
+    components_list = cursor.fetchall()
+    components_map = {row[0]: row[1] for row in components_list}
+    
+    conn.close()
+    
+    preset_id = request.args.get('preset_id') or subject[1]
+    return render_template('edit_subject.html', subject=subject, components_map=components_map, preset_id=preset_id)
 
 @app.route('/admin/subjects/<int:preset_id>', methods=['GET'])
 def manage_subjects(preset_id):
@@ -926,13 +1145,14 @@ def manage_subjects(preset_id):
         cursor.execute("SELECT * FROM components WHERE subject_id=?", (subject[0],))
         subject_components[subject[0]] = cursor.fetchall()
 
-    conn.close()
+    total_credits = sum(subj[4] for subj in subjects) if subjects else 0
 
     return render_template(
         'manage_subjects.html',
         preset=preset,
         subjects=subjects,
-        subject_components=subject_components
+        subject_components=subject_components,
+        total_credits=total_credits
     )
 
 

@@ -1,55 +1,224 @@
 {% extends 'base.html' %}
 
-{% block title %}Manage Students{% endblock %}
+{% block title %}Registered Students{% endblock %}
 
 {% block content %}
-<div style="padding-top: 2rem;">
-    <h1>Registered Students</h1>
+<div style="padding-top: 2rem; max-width: 1200px; margin: 0 auto;">
 
-    <div class="glass table-container" style="margin-top: 2rem;">
-        <table class="sortable-table">
+    <!-- Header Section -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="margin: 0; text-align: left; background: none; -webkit-background-clip: unset; background-clip: unset; color: var(--text-main);">
+                <i class="fas fa-users" style="color: var(--primary); margin-right: 0.5rem;"></i>
+                Registered Students
+            </h1>
+            <p style="color: var(--text-muted); margin: 0.3rem 0 0;">
+                Manage student records, view individual grade sheets, and configure profiles.
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary" style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: var(--text-light);">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Stats Overview -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="glass card" style="display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem;">
+            <div style="background: rgba(79, 70, 229, 0.1); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--primary);">
+                <i class="fas fa-user-grad"></i>
+            </div>
+            <div>
+                <div style="font-size: 2.2rem; font-weight: 700; color: var(--text-main); line-height: 1.1;">{{ students|length }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Total Enrolled</div>
+            </div>
+        </div>
+
+        <div class="glass card" style="display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem;">
+            <div style="background: rgba(16, 185, 129, 0.1); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--success);">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); line-height: 1.1;" id="activeDeptsCount">0</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Departments</div>
+            </div>
+        </div>
+
+        <div class="glass card" style="display: flex; align-items: center; gap: 1.5rem; padding: 1.5rem;">
+            <div style="background: rgba(245, 158, 11, 0.1); width: 60px; height: 60px; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--warning);">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); line-height: 1.1;" id="activeYearsCount">0</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">Academic Years</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="glass card" style="margin-bottom: 2rem; padding: 1.2rem 1.5rem;">
+        <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 280px; position: relative;">
+                <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 1.1rem;">🔍</span>
+                <input type="text" id="studentSearch" placeholder="Filter by name, roll number, email, or department..."
+                       onkeyup="filterStudents()" style="padding-left: 2.8rem; width: 100%;">
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+                <select id="deptFilter" onchange="filterStudents()" style="width: auto; padding: 0.6rem 1.2rem; border-radius: 10px;">
+                    <option value="">All Departments</option>
+                    <option value="Computer Engineering">Computer Engineering</option>
+                    <option value="AI & ML">AI & ML</option>
+                    <option value="Electronics & Computer Science">Electronics & Computer Science</option>
+                    <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    <option value="Information Technology">Information Technology</option>
+                </select>
+                <select id="yearFilter" onchange="filterStudents()" style="width: auto; padding: 0.6rem 1.2rem; border-radius: 10px;">
+                    <option value="">All Years</option>
+                    <option value="FE">FE</option>
+                    <option value="SE">SE</option>
+                    <option value="TE">TE</option>
+                    <option value="BE">BE</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="glass table-container" style="overflow-x: auto;">
+        <table id="studentsTable" class="sortable-table" style="margin: 0; min-width: 900px;">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Roll Number</th>
-                    <th>Enrollment No.</th>
-                    <th>Email</th>
-
-                    <th>Department</th>
-                    <th>Year</th>
-                    <th>Actions</th>
+                    <th style="white-space: nowrap; width: 250px;">Student Name</th>
+                    <th style="white-space: nowrap; width: 120px;">Roll Number</th>
+                    <th style="white-space: nowrap; width: 140px;">Enrollment No.</th>
+                    <th style="white-space: nowrap;">Email Address</th>
+                    <th style="white-space: nowrap; width: 200px;">Department</th>
+                    <th style="white-space: nowrap; width: 80px;">Year</th>
+                    <th style="white-space: nowrap; width: 140px; text-align: center;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for student in students %}
-                <tr>
-                    <td style="font-weight: 500; color: var(--text-main);">{{ student[1] }}</td>
-                    <td>{{ student[2] }}</td>
-                    <td>{{ student[4] or '-' }}</td>
-                    <td>{{ student[3] }}</td>
-
-                    <td>{{ student[5] or '-' }}</td>
-                    <td>{{ student[7] or '-' }}</td>
-                    <td class="action-buttons">
-                        <a href="{{ url_for('view_student_marks', user_id=student[0]) }}" class="btn-icon"
-                            title="View Results"><i class="fas fa-chart-bar"></i></a>
-                        <a href="{{ url_for('edit_student_record', user_id=student[0]) }}" class="btn-icon"
-                            title="Edit"><i class="fas fa-edit"></i></a>
-                        <a href="{{ url_for('delete_student_record', user_id=student[0]) }}" class="btn-icon delete"
-                            title="Delete"
-                            onclick="return confirm('Are you sure you want to delete this student data?')"><i
-                                class="fas fa-trash"></i></a>
+                <tr class="student-row" 
+                    data-name="{{ student[1] }}" 
+                    data-roll="{{ student[2] }}" 
+                    data-email="{{ student[3] }}"
+                    data-dept="{{ student[5] or '' }}" 
+                    data-year="{{ student[7] or '' }}">
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; box-shadow: var(--shadow-sm);">
+                                {{ student[1][0] | upper }}
+                            </div>
+                            <div>
+                                <span style="font-weight: 600; color: var(--text-main); display: block;">{{ student[1] }}</span>
+                                <span style="font-size: 0.75rem; color: var(--text-dim);">AY: {{ student[6] or 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-weight: 500; color: var(--primary);">{{ student[2] or '–' }}</td>
+                    <td style="font-family: monospace; font-size: 0.9rem; color: var(--text-light);">{{ student[4] or '–' }}</td>
+                    <td style="color: var(--text-muted); font-size: 0.9rem;">{{ student[3] }}</td>
+                    <td>
+                        {% if student[5] %}
+                        <span style="font-size: 0.8rem; background: rgba(79, 70, 229, 0.08); color: var(--primary); padding: 0.3rem 0.75rem; border-radius: 30px; font-weight: 500; display: inline-block;">
+                            {{ student[5] }}
+                        </span>
+                        {% else %}
+                        <span style="color: var(--text-dim);">–</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if student[7] %}
+                        <span style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.08); color: var(--accent); padding: 0.3rem 0.6rem; border-radius: 6px; font-weight: 600; display: inline-block;">
+                            {{ student[7] }}
+                        </span>
+                        {% else %}
+                        <span style="color: var(--text-dim);">–</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <div style="display: flex; gap: 0.5rem; justify-content: center;">
+                            <a href="{{ url_for('view_student_marks', user_id=student[0]) }}" class="btn-icon" title="View Grades & SGPA" style="background: rgba(16, 185, 129, 0.08); color: var(--success); border-color: rgba(16, 185, 129, 0.2);">
+                                <i class="fas fa-chart-line"></i>
+                            </a>
+                            <a href="{{ url_for('edit_student_record', user_id=student[0]) }}" class="btn-icon" title="Edit Student Info" style="background: rgba(79, 70, 229, 0.08); color: var(--primary); border-color: rgba(79, 70, 229, 0.2);">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ url_for('delete_student_record', user_id=student[0]) }}" class="btn-icon delete" title="Delete Student"
+                               onclick="return confirm('Are you sure you want to delete all records for this student? This action is permanent.')" 
+                               style="background: rgba(239, 68, 68, 0.08); color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                        No students found.
+                    <td colspan="7" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+                        <i class="fas fa-user-slash" style="font-size: 2.5rem; color: var(--text-dim); margin-bottom: 1rem; display: block;"></i>
+                        <h3>No Students Found</h3>
+                        <p>Registered students will appear here once they complete their first sign-in.</p>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    
+    <p id="noResultsMsg" style="display: none; text-align: center; padding: 3rem; color: var(--text-muted);">
+        <i class="fas fa-search" style="font-size: 2rem; color: var(--text-dim); margin-bottom: 0.5rem; display: block;"></i>
+        No matching students match your filter criteria.
+    </p>
+
 </div>
+
+<script>
+    function filterStudents() {
+        var query = document.getElementById("studentSearch").value.toUpperCase();
+        var deptFilter = document.getElementById("deptFilter").value.toUpperCase();
+        var yearFilter = document.getElementById("yearFilter").value.toUpperCase();
+        
+        var rows = document.querySelectorAll("#studentsTable tbody tr.student-row");
+        var visibleCount = 0;
+
+        rows.forEach(function(row) {
+            var name = row.dataset.name ? row.dataset.name.toUpperCase() : "";
+            var roll = row.dataset.roll ? row.dataset.roll.toUpperCase() : "";
+            var email = row.dataset.email ? row.dataset.email.toUpperCase() : "";
+            var dept = row.dataset.dept ? row.dataset.dept.toUpperCase() : "";
+            var year = row.dataset.year ? row.dataset.year.toUpperCase() : "";
+
+            var matchSearch = name.indexOf(query) > -1 || roll.indexOf(query) > -1 || email.indexOf(query) > -1 || dept.indexOf(query) > -1;
+            var matchDept = !deptFilter || dept === deptFilter;
+            var matchYear = !yearFilter || year === yearFilter;
+
+            if (matchSearch && matchDept && matchYear) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        document.getElementById("noResultsMsg").style.display = visibleCount === 0 && rows.length > 0 ? "block" : "none";
+    }
+
+    // Calculate metadata dynamically on load
+    window.addEventListener('DOMContentLoaded', () => {
+        const rows = document.querySelectorAll("#studentsTable tbody tr.student-row");
+        
+        const depts = new Set();
+        const years = new Set();
+        
+        rows.forEach(row => {
+            if(row.dataset.dept) depts.add(row.dataset.dept);
+            if(row.dataset.year) years.add(row.dataset.year);
+        });
+        
+        document.getElementById('activeDeptsCount').innerText = depts.size;
+        document.getElementById('activeYearsCount').innerText = years.size || 0;
+    });
+</script>
 {% endblock %}

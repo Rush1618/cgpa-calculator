@@ -10,8 +10,8 @@
             <i class="fas fa-arrow-left"></i> Back to Dashboard
         </a>
         <h1>Manage Subjects</h1>
-        <p style="text-align: center; color: var(--text-muted);">
-            {{ preset[1] }} &bull; {{ preset[2] }} &bull; {{ preset[3] }} Year
+        <p style="text-align: center; color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem;">
+            {{ preset[3] or 'General' }} &bull; {{ preset[4] }} Year &bull; Sem {{ preset[6] }} &bull; Div {{ preset[5] }} &bull; AY {{ preset[1] }} &bull; <span style="font-weight: 600; color: var(--primary);">Total Credits: {{ total_credits }}</span>
         </p>
     </div>
 

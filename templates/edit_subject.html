@@ -3,32 +3,119 @@
 {% block title %}Edit Subject{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
-    <div class="glass card" style="width: 100%; max-width: 500px; padding: 2rem;">
-        <h2 style="text-align: center; margin-bottom: 2rem;">Edit Subject</h2>
+<div style="display: flex; justify-content: center; align-items: center; min-height: 80vh; padding-top: 2rem;">
+    <div class="glass card" style="width: 100%; max-width: 600px; padding: 2.5rem; position: relative;">
+        <!-- Gradient top border -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: linear-gradient(90deg, var(--primary), var(--secondary));"></div>
+        
+        <h2 style="text-align: center; margin-bottom: 2rem;"><i class="fas fa-edit" style="color: var(--primary);"></i> Edit Subject</h2>
 
         <form method="POST">
+            <!-- Subject Name -->
             <div class="form-group">
-                <label>Subject Name</label>
+                <label><i class="fas fa-book" style="color: var(--primary); margin-right: 0.4rem;"></i> Subject Name</label>
                 <input type="text" name="name" class="form-control" value="{{ subject[2] }}" required>
             </div>
 
-            <div class="form-group">
-                <label>Subject Code</label>
-                <input type="text" name="code" class="form-control" value="{{ subject[3] }}">
+            <!-- Subject Code and Credits Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div class="form-group">
+                    <label><i class="fas fa-barcode" style="color: var(--primary); margin-right: 0.4rem;"></i> Subject Code</label>
+                    <input type="text" name="code" class="form-control" value="{{ subject[3] or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label><i class="fas fa-star" style="color: var(--primary); margin-right: 0.4rem;"></i> Credits</label>
+                    <input type="number" step="0.5" name="credits" class="form-control" value="{{ subject[4] }}" required>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label>Credits</label>
-                <input type="number" step="0.5" name="credits" class="form-control" value="{{ subject[4] }}" required>
+            <!-- Assessment Components Section -->
+            <div style="margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                <label style="color: var(--primary); font-weight: 600; margin-bottom: 1.25rem; display: block;">
+                    <i class="fas fa-tasks"></i> Assessment Components (Max Marks)
+                </label>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                    <!-- IAT 1 -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="components" value="IAT1" style="width: auto;"
+                                onclick="toggleInput(this, 'max_marks_IAT1')"
+                                {% if 'IAT1' in components_map %}checked{% endif %}> IAT 1
+                        </label>
+                        <input type="number" name="max_marks_IAT1" id="max_marks_IAT1" placeholder="Max Marks"
+                            style="padding: 0.5rem; margin-top: 0.25rem;"
+                            {% if 'IAT1' in components_map %}value="{{ components_map['IAT1'] }}"{% else %}disabled{% endif %}>
+                    </div>
+
+                    <!-- IAT 2 -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="components" value="IAT2" style="width: auto;"
+                                onclick="toggleInput(this, 'max_marks_IAT2')"
+                                {% if 'IAT2' in components_map %}checked{% endif %}> IAT 2
+                        </label>
+                        <input type="number" name="max_marks_IAT2" id="max_marks_IAT2" placeholder="Max Marks"
+                            style="padding: 0.5rem; margin-top: 0.25rem;"
+                            {% if 'IAT2' in components_map %}value="{{ components_map['IAT2'] }}"{% else %}disabled{% endif %}>
+                    </div>
+
+                    <!-- End Sem -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="components" value="EndSem" style="width: auto;"
+                                onclick="toggleInput(this, 'max_marks_EndSem')"
+                                {% if 'EndSem' in components_map %}checked{% endif %}> End Sem
+                        </label>
+                        <input type="number" name="max_marks_EndSem" id="max_marks_EndSem" placeholder="Max Marks"
+                            style="padding: 0.5rem; margin-top: 0.25rem;"
+                            {% if 'EndSem' in components_map %}value="{{ components_map['EndSem'] }}"{% else %}disabled{% endif %}>
+                    </div>
+
+                    <!-- Practical/Oral -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="components" value="Practical/Oral" style="width: auto;"
+                                onclick="toggleInput(this, 'max_marks_Practical_Oral')"
+                                {% if 'Practical/Oral' in components_map %}checked{% endif %}> Practical/Oral
+                        </label>
+                        <input type="number" name="max_marks_Practical/Oral" id="max_marks_Practical_Oral" placeholder="Max Marks"
+                            style="padding: 0.5rem; margin-top: 0.25rem;"
+                            {% if 'Practical/Oral' in components_map %}value="{{ components_map['Practical/Oral'] }}"{% else %}disabled{% endif %}>
+                    </div>
+
+                    <!-- Term Work -->
+                    <div>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" name="components" value="TermWork" style="width: auto;"
+                                onclick="toggleInput(this, 'max_marks_TermWork')"
+                                {% if 'TermWork' in components_map %}checked{% endif %}> Term Work
+                        </label>
+                        <input type="number" name="max_marks_TermWork" id="max_marks_TermWork" placeholder="Max Marks"
+                            style="padding: 0.5rem; margin-top: 0.25rem;"
+                            {% if 'TermWork' in components_map %}value="{{ components_map['TermWork'] }}"{% else %}disabled{% endif %}>
+                    </div>
+                </div>
             </div>
 
-            <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-                <a href="{{ url_for('manage_subjects', preset_id=request.args.get('preset_id')) }}"
-                    class="btn btn-secondary" style="flex: 1; text-align: center;">Cancel</a>
-                <button type="submit" class="btn btn-primary" style="flex: 2;">Update Subject</button>
+            <!-- Actions buttons -->
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                <a href="{{ url_for('manage_subjects', preset_id=preset_id) }}"
+                    class="btn" style="flex: 1; text-align: center; border: 1px solid var(--glass-border); background: transparent; color: var(--text-muted);">Cancel</a>
+                <button type="submit" class="btn btn-primary" style="flex: 2; background: var(--success); box-shadow: 0 4px 20px var(--success-glow);">Update Subject</button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    function toggleInput(checkbox, inputId) {
+        const input = document.getElementById(inputId);
+        input.disabled = !checkbox.checked;
+        if (!checkbox.checked) {
+            input.value = '';
+        }
+    }
+</script>
 {% endblock %}

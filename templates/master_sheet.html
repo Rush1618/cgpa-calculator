@@ -30,7 +30,7 @@
                     <option value="" disabled selected>-- Select a Class to View Data --</option>
                     {% for preset in presets %}
                     <option value="{{ preset[0] }}" {% if selected_preset_id==preset[0] %}selected{% endif %}>
-                        {{ preset[1] }} - {{ preset[2] }} ({{ preset[3] }} Yr, Div {{ preset[4] }}, Sem {{ preset[5] }})
+                        {{ preset[1] }} - {{ preset[3] or 'General' }} - {{ preset[4] }} Yr, Div {{ preset[5] }}, Sem {{ preset[6] }}
                     </option>
                     {% endfor %}
                 </select>
